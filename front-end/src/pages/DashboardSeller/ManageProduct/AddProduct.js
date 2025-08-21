@@ -88,6 +88,7 @@ export default function AddProduct({ onAdded }) {
             isAuction: isAuction === 'true',
             quantity: Number(quantity)
         };
+        console.log("image", image);
 
         try {
             const result = await api.post('seller/products', requestBody);
@@ -111,12 +112,34 @@ export default function AddProduct({ onAdded }) {
         }
     };
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImage(URL.createObjectURL(file));
+const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Preview local tạm cho UI
+    setImage(URL.createObjectURL(file));
+
+    try {
+        const formData = new FormData();
+        formData.append("image", file);
+
+        const res = await api.post("seller/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (res.data.success) {
+            const uploadedUrl = res.data.data.url; // link Cloudinary trả về
+            setImage(uploadedUrl);
+            console.log("Image uploaded:", uploadedUrl);
+        } else {
+            console.error("Upload failed:", res.data.message);
         }
-    };
+    } catch (err) {
+        console.error("Error uploading image:", err);
+    }
+};
+
+
 
     const handleAddCategoryClick = () => {
         setOpenAddCategoryDialog(true);
