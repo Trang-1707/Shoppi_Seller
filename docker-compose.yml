@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   backend:
     build:
@@ -8,7 +6,7 @@ services:
     image: shopii-backend:latest
     container_name: shopii-backend
     env_file:
-      - ./back-end/.env.docker
+      - ./back-end/.env
     environment:
       PORT: "9999"
     expose:
