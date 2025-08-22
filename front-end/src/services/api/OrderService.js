@@ -137,6 +137,29 @@ class OrderService {
       throw error;
     }
   }
+
+/**
+   * Xuất phiếu vận chuyển (tạo tracking code + link PDF)
+   * @param {string} orderId - ID của đơn hàng
+   * @returns {Promise<{trackingCode: string, pdfUrl: string}>}
+   */
+  async exportShippingLabel(orderId) {
+    try {
+      const response = await api.get(`/order/shipping-label/${orderId}`, {
+      responseType: 'blob'
+      });
+
+      // giả sử server trả trackingCode trong header
+      const trackingCode = response.headers['x-tracking-code'] || null;
+
+      // Tạo URL PDF để FE mở hoặc in
+      const pdfUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+
+      return { trackingCode, pdfUrl };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default new OrderService();

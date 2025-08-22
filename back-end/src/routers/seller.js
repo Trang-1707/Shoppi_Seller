@@ -67,4 +67,5 @@ router.post("/feedback", sellerController.submitFeedback);
 
 router.post('/upload', upload.single('image'), imageController.uploadImage);
 
+
 module.exports = router;

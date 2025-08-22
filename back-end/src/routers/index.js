@@ -12,6 +12,7 @@ const userController = require("../controllers/userController");
 const imageRoutes = require("../routes/imageRoutes");
 const { authMiddleware } = require("../middleware/auth.middleware");
 
+
 router.use("/admin", adminRouter);
 router.use("/seller", sellerRouter);
 
@@ -39,5 +40,6 @@ router.get('/products/:productId/reviews', reviewController.getProductReviews);
 
 // Protected route for product details with all related information
 router.get('/products/:productId/detail', authMiddleware, productController.getProductDetail);
+
 
 module.exports = router;
