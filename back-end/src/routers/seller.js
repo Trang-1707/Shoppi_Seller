@@ -3,6 +3,9 @@ const router = express.Router();
 const sellerController = require("../controllers/sellerController");
 const { authMiddleware, isSeller } = require("../middleware/auth.middleware");
 const voucherSellerController = require("../controllers/voucherSellerController");
+const imageController = require("../controllers/imageController");
+const { upload } = require("../config/cloudinary");
+
 // Đăng nhập và chuyển chế độ
 router.post("/login", sellerController.loginAndSwitch);
 
@@ -98,5 +101,7 @@ router.put(
   "/vouchers/:id/toggle-active",
   voucherSellerController.toggleVoucherActive
 );
+
+router.post("/upload", upload.single("image"), imageController.uploadImage);
 
 module.exports = router;

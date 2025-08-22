@@ -13,18 +13,19 @@ const uploadImage = async (req, res) => {
         message: 'No file uploaded' 
       });
     }
-    
-    // Multer with Cloudinary storage already uploads the file
-    // We can access the result from req.file
+
+    // Multer-storage-cloudinary gắn metadata của ảnh vào req.file
     const result = {
-      public_id: req.file.filename,
-      url: req.file.path,
-      secure_url: req.file.path,
+      public_id: req.file.filename || req.file.public_id,
+      url: req.file.path, // url thường
+      secure_url: req.file.secure_url || req.file.path, // link public HTTPS
       format: req.file.format,
       width: req.file.width,
       height: req.file.height
     };
-    
+
+    console.log("Uploaded result:", result);
+
     return res.status(200).json({
       success: true,
       message: 'File uploaded successfully',
@@ -39,6 +40,7 @@ const uploadImage = async (req, res) => {
     });
   }
 };
+
 
 /**
  * Upload multiple images
