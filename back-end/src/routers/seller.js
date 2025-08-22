@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const sellerController = require("../controllers/sellerController");
 const { authMiddleware, isSeller } = require("../middleware/auth.middleware");
+const imageController = require('../controllers/imageController');
+const { upload } = require('../config/cloudinary');
+
 
 // Đăng nhập và chuyển chế độ
 router.post("/login", sellerController.loginAndSwitch);
@@ -60,5 +63,8 @@ router.get("/report", sellerController.getSalesReport);
 // Đánh giá và phản hồi
 router.get("/reviews", sellerController.getProductReviews);
 router.post("/feedback", sellerController.submitFeedback);
+
+
+router.post('/upload', upload.single('image'), imageController.uploadImage);
 
 module.exports = router;

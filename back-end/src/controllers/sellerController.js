@@ -253,6 +253,7 @@ exports.addNewCategory = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const { title, description, price, image, categoryId, isAuction, auctionEndTime, quantity } = req.body;
+console.log("image",image);
 
     const product = new Product({
       title,
