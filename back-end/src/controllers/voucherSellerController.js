@@ -1,3 +1,4 @@
+const Product = require("../models/Product");
 const VoucherSeller = require("../models/VoucherSeller");
 
 // @desc    Seller tạo voucher mới
@@ -169,25 +170,31 @@ const toggleVoucherActive = async (req, res, next) => {
   }
 };
 
-// @desc    Tìm voucher theo mã (của seller)
-// @route   GET /api/seller/vouchers/code/:code
-// @access  Private/Seller
-const getVoucherByCode = async (req, res, next) => {
+// @desc    Tìm voucher theo mã (cho buyer)
+// @route   GET /api/vouchers/code/:code
+// @access  Public (hoặc Private/Buyer nếu cần login)
+const getVoucherSellerByCode = async (req, res, next) => {
   try {
-    const sellerId = req.user.id;
     const code = req.params.code;
+    const productId = req.query.productId; // nhận productId từ query
     const now = new Date();
 
-    const voucher = await VoucherSeller.findOne({ sellerId, code });
+    if (!productId) {
+      return res.status(400).json({ message: "Vui lòng gửi productId" });
+    }
 
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    const voucher = await VoucherSeller.findOne({ code });
     if (!voucher) {
-      return res.status(404).json({ message: "Không tìm thấy voucher" });
+      return res.status(404).json({ message: "Voucher không tồn tại" });
     }
 
     if (!voucher.isActive) {
-      return res
-        .status(400)
-        .json({ message: "Voucher đã hết hạn hoặc hết lượt sử dụng" });
+      return res.status(400).json({ message: "Voucher không khả dụng" });
     }
 
     if (voucher.expirationDate < now) {
@@ -196,6 +203,23 @@ const getVoucherByCode = async (req, res, next) => {
 
     if (voucher.usedCount >= voucher.usageLimit) {
       return res.status(400).json({ message: "Voucher đã hết lượt sử dụng" });
+    }
+
+    // Kiểm tra sản phẩm có cùng seller
+    if (!product.sellerId.equals(voucher.sellerId)) {
+      return res
+        .status(400)
+        .json({ message: "Voucher không áp dụng cho sản phẩm này" });
+    }
+
+    // Kiểm tra sản phẩm có được áp dụng voucher không
+    if (
+      !voucher.applicableShop &&
+      !voucher.applicableProducts.some((p) => p.equals(product._id))
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Voucher không áp dụng cho sản phẩm này" });
     }
 
     res.json(voucher);
@@ -211,5 +235,5 @@ module.exports = {
   updateVoucher,
   deleteVoucher,
   toggleVoucherActive,
-  getVoucherByCode,
+  getVoucherSellerByCode,
 };

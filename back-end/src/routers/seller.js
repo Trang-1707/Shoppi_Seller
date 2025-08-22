@@ -99,8 +99,4 @@ router.put(
   voucherSellerController.toggleVoucherActive
 );
 
-// Tìm kiếm voucher theo code (của seller)
-// GET /api/seller/vouchers/code/:code
-router.get("/vouchers/code/:code", voucherSellerController.getVoucherByCode);
-
 module.exports = router;
