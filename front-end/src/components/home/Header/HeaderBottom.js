@@ -10,12 +10,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
 import Image from "../../designLayouts/Image";
+import { placeholderDataUrl } from "../../../utils/placeholder";
 import {
   resetUserInfo,
   setUserInfo,
   setProducts,
-  calculateCartTotalCount,
-} from "../../../redux/orebiSlice";
+} from "../../../redux/slices/orebi.slice";
 
 const HeaderBottom = () => {
   const navigate = useNavigate();
@@ -28,17 +28,16 @@ const HeaderBottom = () => {
   const user = authState?.user || null;
 
   // Get data from Redux store with safe checks
-  const orebiReducer = useSelector((state) => state.orebiReducer) || {};
-  const products = orebiReducer.products || [];
-  
+  // Avoid depending on non-registered orebi reducer; keep local state instead
+
   // Get chat unread count
   const chatState = useSelector((state) => state.chat);
   const chatNotifications = chatState?.conversations?.reduce((count, conv) => count + (conv.unreadCount || 0), 0) || 0;
-  
+
   // Get cart information from Redux store
   const cartState = useSelector((state) => state.cart) || {};
   const cartItems = cartState.items || [];
-  
+
   // Calculate total items in cart
   const cartTotalCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -49,7 +48,7 @@ const HeaderBottom = () => {
   const [userName, setUserName] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('accessToken'));
-  
+
   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:9999";
 
   // Fetch products function
@@ -62,7 +61,7 @@ const HeaderBottom = () => {
         name: product.title, // Backend uses 'title' field for product names
         image: product.image
       }));
-      
+
       dispatch(setProducts(formattedProducts));
       setAllProducts(formattedProducts);
     } catch (error) {
@@ -78,14 +77,15 @@ const HeaderBottom = () => {
         setIsLoggedIn(false);
         return;
       }
-      
+
       const response = await axios.get(`${API_BASE_URL}/api/profile`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      setUserName(response.data.fullname || response.data.username);
-      dispatch(setUserInfo(response.data));
+      const profile = response.data?.data || {};
+      setUserName(profile.fullname || profile.username);
+      dispatch(setUserInfo(profile));
       setIsLoggedIn(true);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
@@ -106,7 +106,7 @@ const HeaderBottom = () => {
   // Effect to load data when component mounts
   useEffect(() => {
     fetchProducts();
-    
+
     if (isLoggedIn) {
       fetchUserData();
     }
@@ -127,7 +127,7 @@ const HeaderBottom = () => {
   // Filter products when search query changes
   useEffect(() => {
     const filtered = allProducts
-      .filter((item) => 
+      .filter((item) =>
         (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -141,7 +141,7 @@ const HeaderBottom = () => {
         category: item.categoryId?.name || "",
         seller: item.sellerId?.username || ""
       }));
-    
+
     setFilteredProducts(filtered);
   }, [searchQuery, allProducts]);
 
@@ -157,7 +157,7 @@ const HeaderBottom = () => {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       localStorage.removeItem('accessToken');
       dispatch(resetUserInfo());
       setIsLoggedIn(false);
@@ -175,9 +175,9 @@ const HeaderBottom = () => {
 
   const getProductImage = (item) => {
     if (!item.image) {
-      return "https://via.placeholder.com/100?text=No+Image";
+      return placeholderDataUrl(100, 100, 'No Image');
     }
-    
+
     if (item.image.startsWith('http://') || item.image.startsWith('https://')) {
       return item.image;
     } else {
@@ -195,7 +195,7 @@ const HeaderBottom = () => {
               <div className="flex items-center">
                 <IoStorefrontOutline className="text-3xl text-white mr-2" />
                 <p className="text-[24px] font-bold text-white tracking-wider hover:text-gray-100 transition-colors">
-                  TUTHAITU
+                  SUPER GIRLS
                 </p>
               </div>
             </Link>
@@ -211,9 +211,9 @@ const HeaderBottom = () => {
               placeholder="Search products..."
             />
             <FaSearch className="w-5 h-5 text-[#2962ff] cursor-pointer" />
-            
+
             {searchQuery && filteredProducts.length > 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -229,13 +229,13 @@ const HeaderBottom = () => {
                     className="max-w-[600px] h-28 bg-gray-50 mb-2 flex items-center gap-3 p-3 hover:bg-blue-50 transition-colors border-b border-gray-100"
                   >
                     <div className="w-24 h-24 bg-gray-100 rounded-md overflow-hidden">
-                      <img 
-                        className="w-full h-full object-contain p-1" 
-                        src={getProductImage(item)} 
-                        alt={item.name} 
+                      <img
+                        className="w-full h-full object-contain p-1"
+                        src={getProductImage(item)}
+                        alt={item.name}
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "https://via.placeholder.com/100?text=No+Image";
+                          e.target.src = placeholderDataUrl(100, 100, 'No Image');
                         }}
                       />
                     </div>
@@ -280,11 +280,11 @@ const HeaderBottom = () => {
                 </div>
               </Link>
             )}
-            
+
             {/* User dropdown */}
-            <div 
+            <div
               ref={ref}
-              onClick={() => setShowUser(!showUser)} 
+              onClick={() => setShowUser(!showUser)}
               className="text-white hover:text-gray-200 transition-colors"
             >
               <div className="flex flex-col items-center group">
@@ -293,7 +293,7 @@ const HeaderBottom = () => {
                 </div>
                 <span className="text-xs mt-1 font-medium">Account</span>
               </div>
-              
+
               {showUser && (
                 <motion.div
                   initial={{ y: 30, opacity: 0 }}
@@ -346,7 +346,7 @@ const HeaderBottom = () => {
                           Return Requests
                         </div>
                       </Link>
-                      <div 
+                      <div
                         onClick={handleLogout}
                         className="py-2 mt-2 hover:bg-red-50 px-3 rounded transition-colors flex items-center gap-3 border-t border-gray-200 pt-3 text-red-600"
                       >
@@ -372,7 +372,7 @@ const HeaderBottom = () => {
                 </motion.div>
               )}
             </div>
-            
+
             {/* Shopping Cart */}
             <Link to="/cart" className="relative text-white hover:text-gray-200 transition-colors">
               <div className="flex flex-col items-center group">

@@ -8,20 +8,20 @@ const fileUploadService = require('../services/fileUploadService');
 const uploadImage = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No file uploaded' 
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
       });
     }
 
-    // Multer-storage-cloudinary gắn metadata của ảnh vào req.file
+    // multer-s3 gắn metadata của ảnh vào req.file
     const result = {
-      public_id: req.file.filename || req.file.public_id,
-      url: req.file.path, // url thường
-      secure_url: req.file.secure_url || req.file.path, // link public HTTPS
-      format: req.file.format,
-      width: req.file.width,
-      height: req.file.height
+      public_id: req.file.key,
+      url: req.file.location || req.file.Location || req.file.path,
+      secure_url: req.file.location || req.file.Location || req.file.path,
+      format: req.file.mimetype,
+      width: undefined,
+      height: undefined
     };
 
     console.log("Uploaded result:", result);
@@ -57,12 +57,12 @@ const uploadMultipleImages = async (req, res) => {
     }
 
     const results = req.files.map(file => ({
-      public_id: file.filename,
-      url: file.path,
-      secure_url: file.path,
-      format: file.format,
-      width: file.width,
-      height: file.height
+      public_id: file.key,
+      url: file.location || file.Location || file.path,
+      secure_url: file.location || file.Location || file.path,
+      format: file.mimetype,
+      width: undefined,
+      height: undefined
     }));
 
     return res.status(200).json({
@@ -81,14 +81,14 @@ const uploadMultipleImages = async (req, res) => {
 };
 
 /**
- * Delete an image from Cloudinary
+ * Delete an image from storage
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const deleteImage = async (req, res) => {
   try {
     const { public_id } = req.body;
-    
+
     if (!public_id) {
       return res.status(400).json({
         success: false,
@@ -97,19 +97,12 @@ const deleteImage = async (req, res) => {
     }
 
     const result = await fileUploadService.deleteFile(public_id);
-    
-    if (result.result === 'ok') {
-      return res.status(200).json({
-        success: true,
-        message: 'Image deleted successfully'
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Failed to delete image',
-        data: result
-      });
-    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Image deleted successfully',
+      data: result
+    });
   } catch (error) {
     console.error('Error in deleteImage controller:', error);
     return res.status(500).json({

@@ -49,6 +49,7 @@ import {
 import { styled } from '@mui/material/styles';
 
 import { startConversation } from '../../features/chat/chatSlice';
+import { placeholderDataUrl } from '../../utils/placeholder';
 
 // Enhanced styled components for better UI
 const StyledRating = styled(Rating)({
@@ -442,12 +443,12 @@ const AuthProductDetail = () => {
                     productData.image : 
                     `${API_BASE_URL}/uploads/${productData.image}`
                   ) : 
-                  'https://via.placeholder.com/400?text=No+Image'
+                  placeholderDataUrl(400, 400, 'No Image')
                 }
                 alt={productData.title}
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/400?text=No+Image';
+                  e.target.src = placeholderDataUrl(400, 400, 'No Image');
                 }}
               />
             </ProductImage>
@@ -858,7 +859,7 @@ const AuthProductDetail = () => {
                             alt={store.storeName}
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = 'https://via.placeholder.com/400x150?text=No+Image';
+                              e.target.src = placeholderDataUrl(400, 150, 'No Image');
                             }}
                           />
                         )}

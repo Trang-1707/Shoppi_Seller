@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { productOfTheYear } from "../../../assets/images";
+import productOfTheYear from "../../../assets/images/products/productOfTheYear.webp";
 import ShopNow from "../../designLayouts/buttons/ShopNow";
 import Image from "../../designLayouts/Image";
 

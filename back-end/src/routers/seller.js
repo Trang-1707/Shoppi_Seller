@@ -3,7 +3,9 @@ const router = express.Router();
 const sellerController = require("../controllers/sellerController");
 const { authMiddleware, isSeller } = require("../middleware/auth.middleware");
 const imageController = require('../controllers/imageController');
-const { upload } = require('../config/cloudinary');
+const { upload } = require('../config/minio');
+const { productCreateLimiter } = require('../middleware/rateLimit.middleware');
+const { verifyRecaptcha } = require('../middleware/recaptcha.middleware');
 
 
 // Đăng nhập và chuyển chế độ
@@ -18,11 +20,11 @@ router.use(isSeller);
 
 // Quản lý hồ sơ cửa hàng và người bán
 router.get("/store", sellerController.getProfileStoreAndSeller);
-router.put("/store", sellerController.updateStoreProfile); 
+router.put("/store", sellerController.updateStoreProfile);
 router.put("/profile", sellerController.updateSellerProfile);
 
 // Quản lý sản phẩm
-router.post("/products", sellerController.createProduct);
+router.post("/products", productCreateLimiter, verifyRecaptcha, sellerController.createProduct);
 router.get("/products", sellerController.getProducts);
 router.put("/products/:id", sellerController.updateProduct);
 router.delete("/products/:id", sellerController.deleteProduct);
@@ -37,7 +39,7 @@ router.get("/products/:id", sellerController.getProductById);
 
 // Lấy review theo productId và Review
 router.get("/products/:id/reviews", sellerController.getReviewsByProductId);
-router.post("/products/:productId/reviews/:reviewId/reply",sellerController.replyToReview);
+router.post("/products/:productId/reviews/:reviewId/reply", sellerController.replyToReview);
 
 // Quản lý đơn hàng
 router.get("/orders/history", sellerController.getOrderHistory);
@@ -54,7 +56,7 @@ router.get("/disputes", sellerController.getDisputes);
 router.put("/disputes/:id/resolve", sellerController.resolveDispute);
 
 //Trả hàng
-router.get("/return-requests", sellerController.getReturnRequests); 
+router.get("/return-requests", sellerController.getReturnRequests);
 router.put("/return-requests/:id", sellerController.updateReturnRequest);
 
 // Báo cáo

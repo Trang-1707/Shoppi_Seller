@@ -12,6 +12,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import { styled } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../../services/index';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 // Styled Components
 const VisuallyHiddenInput = styled('input')({
@@ -66,6 +67,8 @@ export default function AddProduct({ onAdded }) {
 
     const [newCategoryName, setNewCategoryName] = React.useState('');
     const [newCategoryDescription, setNewCategoryDescription] = React.useState('');
+    const [recaptchaOk, setRecaptchaOk] = React.useState(false);
+    const [recaptchaToken, setRecaptchaToken] = React.useState('');
 
     React.useEffect(() => {
         api.get('seller/categories')
@@ -79,6 +82,11 @@ export default function AddProduct({ onAdded }) {
     const handleAddProduct = async (e) => {
         e.preventDefault();
 
+        if (!recaptchaOk || !recaptchaToken) {
+            setSnackbar({ open: true, msg: 'Please complete captcha', severity: 'error' });
+            return;
+        }
+
         const requestBody = {
             title,
             description,
@@ -86,7 +94,8 @@ export default function AddProduct({ onAdded }) {
             image,
             categoryId,
             isAuction: isAuction === 'true',
-            quantity: Number(quantity)
+            quantity: Number(quantity),
+            recaptchaToken,
         };
         console.log("image", image);
 
@@ -112,32 +121,29 @@ export default function AddProduct({ onAdded }) {
         }
     };
 
-const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    // Preview local tạm cho UI
-    setImage(URL.createObjectURL(file));
+        try {
+            const formData = new FormData();
+            formData.append("image", file);
 
-    try {
-        const formData = new FormData();
-        formData.append("image", file);
+            const res = await api.post("/images/upload", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
 
-        const res = await api.post("seller/upload", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        if (res.data.success) {
-            const uploadedUrl = res.data.data.url; // link Cloudinary trả về
-            setImage(uploadedUrl);
-            console.log("Image uploaded:", uploadedUrl);
-        } else {
-            console.error("Upload failed:", res.data.message);
+            if (res.data.success) {
+                const uploadedUrl = res.data.data.url; // MinIO public URL
+                setImage(uploadedUrl);
+                console.log("Image uploaded:", uploadedUrl);
+            } else {
+                console.error("Upload failed:", res.data.message);
+            }
+        } catch (err) {
+            console.error("Error uploading image:", err);
         }
-    } catch (err) {
-        console.error("Error uploading image:", err);
-    }
-};
+    };
 
 
 
@@ -297,6 +303,11 @@ const handleImageChange = async (e) => {
                                                             ),
                                                         }}
                                                     />
+                                                    {image && (
+                                                        <Box sx={{ mt: 1 }}>
+                                                            <img src={image} alt="preview" style={{ height: 120, objectFit: 'contain', borderRadius: 8 }} />
+                                                        </Box>
+                                                    )}
                                                 </Grid>
                                                 <Grid item xs={12} sm={4} sx={{ display: 'flex', alignItems: 'flex-end' }}>
                                                     <Button component="label" variant="contained" startIcon={<CloudUploadIcon />} fullWidth>
@@ -334,9 +345,16 @@ const handleImageChange = async (e) => {
                                             </Grid>
                                         </DialogCard>
                                     </Stack>
+                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <ReCAPTCHA
+                                            sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''}
+                                            onChange={(token) => { setRecaptchaOk(!!token); setRecaptchaToken(token || ''); }}
+                                            onExpired={() => { setRecaptchaOk(false); setRecaptchaToken(''); }}
+                                        />
+                                    </Box>
                                     <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0', mt: 3 }}>
                                         <Button onClick={() => setOpenAddProductDialog(false)} sx={{ textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
-                                        <Button type="submit" variant="contained" color="primary" sx={{ textTransform: 'none' }}>
+                                        <Button type="submit" variant="contained" color="primary" disabled={!recaptchaOk} sx={{ textTransform: 'none' }}>
                                             Add Product
                                         </Button>
                                     </DialogActions>
