@@ -253,7 +253,34 @@ exports.addNewCategory = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const { title, description, price, image, categoryId, isAuction, auctionEndTime, quantity } = req.body;
-console.log("image",image);
+
+    // Lấy thông tin seller
+    const seller = await User.findById(req.user.id);
+    if (!seller) {
+      return res.status(404).json({ success: false, message: 'Seller not found' });
+    }
+
+    // Kiểm tra nếu seller là mới (đăng ký trong vòng 1 tháng gần nhất)
+    const now = new Date();
+    const createdAt = seller.createdAt || seller._id.getTimestamp();
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    const isNewSeller = createdAt > oneMonthAgo;
+
+    if (isNewSeller) {
+      // Đếm số sản phẩm đã đăng trong tháng này
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const productCount = await Product.countDocuments({
+        sellerId: req.user.id,
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      });
+      if (productCount >= 10) {
+        return res.status(403).json({
+          success: false,
+          message: 'Seller mới chỉ được đăng tối đa 10 sản phẩm trong 1 tháng đầu tiên.'
+        });
+      }
+    }
 
     const product = new Product({
       title,
