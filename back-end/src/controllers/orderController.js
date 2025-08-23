@@ -67,8 +67,8 @@ const syncOrderStatus = async (orderId) => {
 };
 
 const createOrder = async (req, res) => {
-  const { selectedItems, selectedAddressId, couponCode } = req.body; // paymentMethod removed as it's handled separately
-  const buyerId = req.user.id; // Assumed from auth middleware (e.g., authMiddleware1 sets req.user)
+  const { selectedItems, selectedAddressId, couponCode } = req.body;
+  const buyerId = req.user.id;
 
   if (!selectedAddressId || !selectedItems || selectedItems.length === 0) {
     return res.status(400).json({ error: 'Missing required fields: address or items' });
@@ -87,34 +87,25 @@ const createOrder = async (req, res) => {
     const productDetails = {};
 
     for (const item of selectedItems) {
-      // Validate product exists
       const product = await Product.findById(item.productId);
       if (!product) {
         return res.status(404).json({ error: `Product ${item.productId} not found` });
       }
 
-      // Find or create inventory record
       let inventory = await Inventory.findOne({ productId: item.productId });
-      
-      // If inventory doesn't exist, create it with 0 quantity
       if (!inventory) {
-        inventory = new Inventory({
-          productId: item.productId,
-          quantity: 0
-        });
+        inventory = new Inventory({ productId: item.productId, quantity: 0 });
         await inventory.save();
       }
-      
-      // Validate inventory quantity
+
       if (inventory.quantity < item.quantity) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: `Insufficient inventory for product ${product.title} (ID: ${item.productId}). Available: ${inventory.quantity}, Requested: ${item.quantity}`
         });
       }
 
-      const unitPrice = product.price;
-      subtotal += unitPrice * item.quantity;
-      productDetails[item.productId] = { unitPrice };
+      subtotal += product.price * item.quantity;
+      productDetails[item.productId] = { unitPrice: product.price };
     }
 
     // Step 2: Apply voucher if provided
@@ -136,65 +127,78 @@ const createOrder = async (req, res) => {
         discount = voucher.maxDiscount > 0 ? Math.min(calculatedDiscount, voucher.maxDiscount) : calculatedDiscount;
       }
 
-      // Increment usedCount and save (triggers pre-save hook to update isActive if needed)
       voucher.usedCount += 1;
       await voucher.save();
     }
 
     const totalPrice = Math.max(subtotal - discount, 0);
 
-    // Step 3: Create the Order
+    // Step 3: Generate unique tracking code
+    const generateTrackingCode = (length = 10) => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = '';
+      for (let i = 0; i < length; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    };
+
+    let uniqueTrackingCode = generateTrackingCode();
+    let exists = await Order.findOne({ trackingCode: uniqueTrackingCode });
+    while (exists) {
+      uniqueTrackingCode = generateTrackingCode();
+      exists = await Order.findOne({ trackingCode: uniqueTrackingCode });
+    }
+
+    // Step 4: Create order with tracking code & initial shippingHistory
     const order = new Order({
       buyerId,
       addressId: selectedAddressId,
       totalPrice,
-      status: 'pending', // Default status
+      status: 'pending',
+      trackingCode: uniqueTrackingCode,
+      shippingHistory: [{ status: 'created', date: new Date() }]
     });
+
     await order.save();
 
-    // Step 4: Create OrderItems and deduct from inventory
+    // Step 5: Create OrderItems and deduct from inventory
     for (const item of selectedItems) {
       const orderItem = new OrderItem({
         orderId: order._id,
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: productDetails[item.productId].unitPrice,
-        status: 'pending', // Default status
+        status: 'pending',
       });
       await orderItem.save();
 
-      // Deduct quantity from inventory - using upsert:false since we know inventory exists
       await Inventory.findOneAndUpdate(
         { productId: item.productId },
-        { 
-          $inc: { quantity: -item.quantity },
-          $set: { lastUpdated: new Date() }
-        },
-        { upsert: false } // No upsert, assume inventory exists (we created it if needed above)
+        { $inc: { quantity: -item.quantity }, $set: { lastUpdated: new Date() } },
+        { upsert: false }
       );
     }
-    
-    // Check if we need to update the order status based on all items
+
+    // Step 6: Sync order status based on items
     await syncOrderStatus(order._id);
 
-    // Step 5: Send email notification assuming payment is successful (e.g., for COD or post-order confirmation)
-    // Note: If payment is handled separately (e.g., via gateway webhook), move this to a payment success handler.
-    // For now, assuming order creation implies payment success for simplicity.
+    // Step 7: Send email notification
     try {
       const emailSubject = 'Payment Successful and Order Confirmation';
-      const emailText = `Dear Customer,\n\nYour payment was successful, and your order has been placed.\nOrder ID: ${order._id}\nTotal Amount: ${totalPrice}\n\nThank you for shopping with us!`;
+      const emailText = `Dear Customer,\n\nYour payment was successful, and your order has been placed.\nOrder ID: ${order._id}\nTracking Code: ${uniqueTrackingCode}\nTotal Amount: ${totalPrice}\n\nThank you for shopping with us!`;
       await sendEmail(buyerEmail, emailSubject, emailText);
       console.log('Email sent successfully to:', buyerEmail);
     } catch (emailError) {
       console.error('Failed to send order confirmation email:', emailError);
-      // Continue with order creation even if email fails
     }
 
     // Success response
-    return res.status(201).json({ 
+    return res.status(201).json({
       message: 'Order placed successfully',
       orderId: order._id,
-      totalPrice 
+      trackingCode: uniqueTrackingCode,
+      totalPrice
     });
 
   } catch (error) {

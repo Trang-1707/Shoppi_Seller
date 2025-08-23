@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { jsPDF } from "jspdf";
 import {
   Paper,
   Typography,
@@ -427,6 +428,50 @@ export default function ManageOrderHistory() {
     setPage(value);
   };
 
+  // PDF Invoice generation
+  const handleDownloadInvoice = (order) => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("INVOICE", 105, 20, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.text(`Order ID: ${order._id}`, 20, 40);
+    doc.text(
+      `Order Date: ${new Date(order.orderDate).toLocaleDateString()}`,
+      20,
+      50
+    );
+    doc.text(
+      `Buyer: ${order.address?.fullName || "N/A"}`,
+      20,
+      60
+    );
+    doc.text(
+      `Address: ${order.address?.street}, ${order.address?.city}, ${order.address?.state}, ${order.address?.country}`,
+      20,
+      70
+    );
+    doc.text(`Phone: ${order.address?.phone || "N/A"}`, 20, 80);
+
+    doc.text("Items:", 20, 95);
+    let y = 105;
+    order.products.forEach((item, index) => {
+      doc.text(
+        `${index + 1}. ${item.productId?.title || "N/A"} - Qty: ${
+          item.quantity
+        } - Price: $${item.unitPrice?.toLocaleString()}`,
+        25,
+        y
+      );
+      y += 10;
+    });
+
+    doc.text(`Total Price: $${order.totalPrice?.toLocaleString()}`, 20, y + 10);
+
+    doc.save(`invoice_${order._id}.pdf`);
+  };
+
   // Render payment status chip
   const renderPaymentStatusChip = (status) => {
     switch (status) {
@@ -800,6 +845,16 @@ export default function ManageOrderHistory() {
                             </Typography>
                           </Box>
                         )}
+                        
+                        <Button
+                          variant="outlined"
+                          color="secondary"
+                          size="small"
+                          sx={{ mt: 1 }}
+                          onClick={() => handleDownloadInvoice(order)}
+                        >
+                          Download Invoice PDF
+                        </Button>
                       </TableCell>
 
                       {/* Order Items List */}

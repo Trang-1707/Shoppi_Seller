@@ -12,6 +12,13 @@ const orderSchema = new Schema(
       enum: ["pending", "processing", "shipping", "shipped", "failed to ship", "rejected"],
       default: "pending",
     },
+    trackingCode: { type: String, unique: true, sparse: true },
+    shippingHistory: [
+  {
+    status: String,
+    date: { type: Date, default: Date.now }
+  }
+]
   },
   { timestamps: true }
 );
