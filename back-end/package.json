@@ -32,6 +32,7 @@
     "express-validator": "^7.2.1",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.18.0",
     "mongoose": "^7.6.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",

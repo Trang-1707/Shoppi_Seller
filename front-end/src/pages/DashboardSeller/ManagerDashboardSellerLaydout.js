@@ -37,6 +37,7 @@ import {
   IconMenu2,
   IconChevronLeft,
   IconChevronRight,
+  IconTicket,
 } from "@tabler/icons-react";
 
 import { Outlet, useNavigate } from "react-router-dom";
@@ -274,6 +275,13 @@ export default function ManagerDashboardSellerLayout() {
     handleSetDashboardTitle("Shipping Management");
   };
 
+  // hàm OnclickVoucher
+  const handleOnclickVoucher = () => {
+    navigate("/manage-voucher-seller");
+    setCurrentPath("/manage-voucher-seller");
+    handleSetDashboardTitle("Manage Vouchers");
+  };
+
   const handleOnclickHome = () => {
     navigate("/");
   };
@@ -486,6 +494,17 @@ export default function ManagerDashboardSellerLayout() {
                   <IconPackages stroke={1.5} />
                 </ListItemIcon>
                 {open && <ListItemText primary="Inventory" />}
+              </StyledListItemButton>
+
+              {/* nút đi đến trang quản lý voucher */}
+              <StyledListItemButton
+                onClick={handleOnclickVoucher}
+                selected={isActive("/manage-voucher-seller")}
+              >
+                <ListItemIcon>
+                  <IconTicket stroke={1.5} />
+                </ListItemIcon>
+                {open && <ListItemText primary="Vouchers" />}
               </StyledListItemButton>
 
               {open && (

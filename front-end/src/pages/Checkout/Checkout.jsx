@@ -5,28 +5,15 @@ import { toast } from "react-toastify";
 import Modal from "react-modal";
 import { fetchAddresses, addAddress } from "../../features/address/addressSlice";
 import { applyVoucher, clearVoucher } from "../../features/voucher/voucherSlice";
+import { applySellerVoucher, clearSellerVoucher } from "../../features/voucherSeller/voucherSellerSlice";
 import { createOrder } from "../../features/order/orderSlice";
 import { removeSelectedItems } from "../../features/cart/cartSlice";
 import { motion } from "framer-motion";
 import { 
-  Container, 
-  Typography, 
-  Box, 
-  Paper, 
-  Grid, 
-  Radio, 
-  RadioGroup, 
-  FormControlLabel, 
-  Button, 
-  TextField, 
-  Divider, 
-  Chip,
-  CircularProgress,
-  FormControl,
-  Checkbox
+  Container, Typography, Box, Paper, Grid, Radio, RadioGroup, FormControlLabel,
+  Button, TextField, Divider, Chip, CircularProgress, FormControl, Checkbox
 } from "@mui/material";
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import PaymentIcon from '@mui/icons-material/Payment';
 import DiscountIcon from '@mui/icons-material/Discount';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AddIcon from '@mui/icons-material/Add';
@@ -64,92 +51,104 @@ const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get data from the Redux store
+  // Redux state
   const { token } = useSelector((state) => state.auth) || {};
   const cartItems = useSelector((state) => state.cart?.items || []);
   const addresses = useSelector((state) => state.address?.addresses || []);
   const { voucher, loading: voucherLoading, error: voucherError } = useSelector((state) => state.voucher);
+  const { sellerVoucher, loading: sellerVoucherLoading, error: sellerVoucherError } = useSelector((state) => state.voucherSeller);
 
-  // State for selected products
+  // Log seller voucher for debugging
+  useEffect(() => {
+    console.log('Seller Voucher State:', { sellerVoucher, sellerVoucherLoading, sellerVoucherError });
+  }, [sellerVoucher, sellerVoucherLoading, sellerVoucherError]);
+
   const selectedItems = location.state?.selectedItems || [];
   const selectedProducts = cartItems.filter(item =>
     item.productId && selectedItems.includes(item.productId._id)
   );
 
-  // State for checkout options
+  // Component state
   const [couponCode, setCouponCode] = useState("");
+  const [sellerCouponCode, setSellerCouponCode] = useState("");
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [newAddress, setNewAddress] = useState({
-    fullName: "",
-    phone: "",
-    street: "",
-    city: "",
-    state: "",
-    country: "",
-    isDefault: false,
+    fullName: "", phone: "", street: "", city: "", state: "", country: "", isDefault: false
   });
   const [phoneError, setPhoneError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Removed payment method state
 
-  // Fetch addresses on component mount and clear voucher on unmount
+  const [voucherMessageShown, setVoucherMessageShown] = useState(false);
+  const [sellerVoucherMessageShown, setSellerVoucherMessageShown] = useState(false);
+
+  // Fetch addresses and clear vouchers on mount/unmount
   useEffect(() => {
-    if (token) {
-      dispatch(fetchAddresses());
-    }
+    if (token) dispatch(fetchAddresses());
     return () => {
       dispatch(clearVoucher());
+      dispatch(clearSellerVoucher());
     };
   }, [dispatch, token]);
 
-  // Set default address if available
+  // Set default address
   useEffect(() => {
     if (addresses.length > 0) {
       const defaultAddress = addresses.find(address => address.isDefault);
-      if (defaultAddress) {
-        setSelectedAddressId(defaultAddress._id);
-      } else {
-        setSelectedAddressId(addresses[0]._id);
-      }
+      setSelectedAddressId(defaultAddress?._id || addresses[0]._id);
     }
   }, [addresses]);
 
-  // Validate phone number
-  const validatePhoneNumber = (phone) => {
-    const regex = /^0\d{9}$/;
-    return regex.test(phone);
-  };
+  // Phone validation
+  const validatePhoneNumber = (phone) => /^0\d{9}$/.test(phone);
 
-  // Calculate subtotal
-  const subtotal = selectedProducts.reduce((total, item) => {
-    return total + (item.productId?.price || 0) * item.quantity;
-  }, 0);
+  // Subtotal calculation
+  const subtotal = selectedProducts.reduce((total, item) => total + (item.productId?.price || 0) * item.quantity, 0);
 
-  // Calculate discount from the applied voucher
+  // Discount calculation
   const calculateDiscount = () => {
-    if (!voucher) return 0;
-    if (subtotal < voucher.minOrderValue) {
-      if (voucherError === null) {
-        toast.error(`Order must have a minimum value of $${voucher.minOrderValue.toLocaleString()} to apply this code.`);
-        dispatch(clearVoucher());
+    let totalDiscount = 0;
+
+    if (voucher && subtotal >= voucher.minOrderValue) {
+      if (voucher.discountType === 'fixed') totalDiscount += voucher.discount;
+      else if (voucher.discountType === 'percentage') {
+        const calc = (subtotal * voucher.discount) / 100;
+        totalDiscount += voucher.maxDiscount > 0 ? Math.min(calc, voucher.maxDiscount) : calc;
       }
-      return 0;
     }
-    if (voucher.discountType === 'fixed') {
-      return voucher.discount;
-    } else if (voucher.discountType === 'percentage') {
-      const calculatedDiscount = (subtotal * voucher.discount) / 100;
-      return voucher.maxDiscount > 0 ? Math.min(calculatedDiscount, voucher.maxDiscount) : calculatedDiscount;
+
+    if (sellerVoucher && subtotal >= sellerVoucher.minOrderValue) {
+      if (sellerVoucher.discountType === 'fixed') totalDiscount += sellerVoucher.discount;
+      else if (sellerVoucher.discountType === 'percentage') {
+        const calc = (subtotal * sellerVoucher.discount) / 100;
+        totalDiscount += sellerVoucher.maxDiscount > 0 ? Math.min(calc, sellerVoucher.maxDiscount) : calc;
+      }
     }
-    return 0;
+
+    return totalDiscount;
   };
 
   const discount = calculateDiscount();
   const total = Math.max(subtotal - discount, 0);
 
-  // Handle adding a new address
+  // Toast for vouchers
+  useEffect(() => {
+    if (voucher && subtotal < voucher.minOrderValue && !voucherMessageShown) {
+      toast.error(`Order must have a minimum value of ₫${voucher.minOrderValue.toLocaleString()} to apply admin code.`);
+      dispatch(clearVoucher());
+      setVoucherMessageShown(true);
+    } else if (voucher && subtotal >= voucher.minOrderValue) setVoucherMessageShown(false);
+  }, [voucher, subtotal, voucherMessageShown, dispatch]);
+
+  useEffect(() => {
+    if (sellerVoucher && subtotal < sellerVoucher.minOrderValue && !sellerVoucherMessageShown) {
+      toast.error(`Order must have a minimum value of ₫${sellerVoucher.minOrderValue.toLocaleString()} to apply seller code.`);
+      dispatch(clearSellerVoucher());
+      setSellerVoucherMessageShown(true);
+    } else if (sellerVoucher && subtotal >= sellerVoucher.minOrderValue) setSellerVoucherMessageShown(false);
+  }, [sellerVoucher, subtotal, sellerVoucherMessageShown, dispatch]);
+
+  // Handlers
   const handleAddAddress = () => {
     if (!validatePhoneNumber(newAddress.phone)) {
       setPhoneError("Invalid phone number. Must start with 0 and contain exactly 10 digits.");
@@ -158,67 +157,60 @@ const Checkout = () => {
     setPhoneError("");
     dispatch(addAddress(newAddress));
     setIsAddressModalOpen(false);
-    setNewAddress({
-      fullName: "", phone: "", street: "", city: "", state: "", country: "", isDefault: false,
-    });
+    setNewAddress({ fullName: "", phone: "", street: "", city: "", state: "", country: "", isDefault: false });
   };
 
-  // Handle applying the coupon code
   const handleApplyCoupon = () => {
-    if (couponCode.trim()) {
-      dispatch(applyVoucher(couponCode));
-    } else {
-      toast.error("Please enter a coupon code");
+    if (couponCode.trim()) dispatch(applyVoucher(couponCode));
+    else toast.error("Please enter an admin coupon code");
+  };
+
+  const handleApplySellerCoupon = async () => {
+    if (!sellerCouponCode.trim()) return toast.error("Vui lòng nhập mã giảm giá của shop");
+    if (sellerVoucher) return toast.error("Bạn đã áp dụng voucher shop rồi");
+
+    const firstProduct = selectedProducts[0];
+    if (!firstProduct?.productId?._id) return toast.error("Không tìm thấy sản phẩm để áp dụng voucher");
+
+    try {
+      await dispatch(applySellerVoucher({ code: sellerCouponCode.trim(), productId: firstProduct.productId._id })).unwrap();
+      setSellerCouponCode("");
+    } catch (err) {
+      console.error("Error applying seller voucher:", err);
     }
   };
 
-  // Handle canceling the applied voucher
   const handleCancelVoucher = () => {
     dispatch(clearVoucher());
     setCouponCode("");
-    toast.info("Coupon code removed.");
+    toast.info("Admin coupon code removed.");
   };
 
-  // Handle placing the order, removing the paymentMethod
+  const handleCancelSellerVoucher = () => {
+    dispatch(clearSellerVoucher());
+    setSellerCouponCode("");
+    toast.info("Voucher shop đã được gỡ bỏ");
+  };
+
   const handlePlaceOrder = async () => {
-    if (!selectedAddressId) {
-      toast.error("Please select a shipping address");
-      return;
-    }
+    if (!selectedAddressId) return toast.error("Please select a shipping address");
     
     setIsProcessing(true);
-    
     const orderDetails = { 
-      selectedItems: selectedProducts.map(item => ({
-        productId: item.productId._id,
-        quantity: item.quantity
-      })), 
+      selectedItems: selectedProducts.map(item => ({ productId: item.productId._id, quantity: item.quantity })), 
       selectedAddressId, 
-      couponCode: voucher ? voucher.code : ''
+      couponCode: voucher ? voucher.code : '',
+      sellerCouponCode: sellerVoucher ? sellerVoucher.code : ''
     };
 
     try {
-      console.log("Submitting order with items:", orderDetails.selectedItems);
       const result = await dispatch(createOrder(orderDetails)).unwrap();
-      
-      // Get all product IDs to remove from cart
       const productIds = selectedProducts.map(item => item.productId._id);
-      
-      // Remove the items from cart in a single batch operation
       await dispatch(removeSelectedItems(productIds)).unwrap();
-      
       toast.success("Order placed successfully!");
-      
-      // Navigate to payment page with stringified orderId to ensure it passes correctly
-      navigate("/payment", { 
-        state: { 
-          orderId: result.orderId.toString(), 
-          totalPrice: result.totalPrice
-        },
-        replace: true  // Use replace to prevent back navigation issues
-      });
-    } catch (error) {
-      toast.error(error);
+      navigate("/payment", { state: { orderId: result.orderId.toString(), totalPrice: result.totalPrice }, replace: true });
+    } catch (err) {
+      toast.error(err);
       setIsProcessing(false);
     }
   };
@@ -361,13 +353,14 @@ const Checkout = () => {
               sx={{ 
                 p: 4, 
                 borderRadius: 2,
-                boxShadow: '0 10px 30px rgba(0,0,0,0.05)'
+                boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+                mb: 4
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <DiscountIcon sx={{ mr: 1, color: '#0F52BA' }} />
                 <Typography variant="h5" fontWeight={600}>
-                  Discount Code
+                  Admin Discount Code
                 </Typography>
               </Box>
               
@@ -396,7 +389,7 @@ const Checkout = () => {
                 <Box sx={{ display: 'flex' }}>
                   <TextField
                     fullWidth
-                    placeholder="Enter discount code"
+                    placeholder="Enter admin discount code"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
                     size="small"
@@ -425,8 +418,76 @@ const Checkout = () => {
                 </Typography>
               )}
             </Paper>
-            
-            {/* Removed Payment Method section */}
+
+            <Paper 
+              elevation={3} 
+              sx={{ 
+                p: 4, 
+                borderRadius: 2,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.05)'
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <DiscountIcon sx={{ mr: 1, color: '#0F52BA' }} />
+                <Typography variant="h5" fontWeight={600}>
+                  Seller Discount Code
+                </Typography>
+              </Box>
+              
+              <Divider sx={{ mb: 3 }} />
+              
+              {sellerVoucher ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CheckCircleIcon sx={{ color: 'success.main', mr: 1 }} />
+                    <Typography variant="body1" fontWeight={500} color="success.main">
+                      Applied: {sellerVoucher.code}
+                    </Typography>
+                  </Box>
+                  <Button 
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<CloseIcon />}
+                    onClick={handleCancelSellerVoucher}
+                    sx={{ minWidth: 100 }}
+                  >
+                    Remove
+                  </Button>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex' }}>
+                  <TextField
+                    fullWidth
+                    placeholder="Enter seller discount code"
+                    value={sellerCouponCode}
+                    onChange={(e) => setSellerCouponCode(e.target.value)}
+                    size="small"
+                    sx={{ mr: 2 }}
+                  />
+                  <Button 
+                    variant="contained"
+                    onClick={handleApplySellerCoupon}
+                    disabled={sellerVoucherLoading || !sellerCouponCode.trim()}
+                    sx={{ 
+                      minWidth: 100,
+                      backgroundColor: '#0F52BA',
+                      '&:hover': {
+                        backgroundColor: '#0A3C8A',
+                      }
+                    }}
+                  >
+                    {sellerVoucherLoading ? <CircularProgress size={24} color="inherit" /> : 'Apply'}
+                  </Button>
+                </Box>
+              )}
+              
+              {sellerVoucherError && !sellerVoucher && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  {sellerVoucherError}
+                </Typography>
+              )}
+            </Paper>
           </Grid>
           
           {/* Right side: Order summary */}
@@ -491,7 +552,7 @@ const Checkout = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" fontWeight={600} sx={{ ml: 2 }}>
-                      ${((item.productId?.price || 0) * item.quantity).toFixed(2)}
+                      ₫{((item.productId?.price || 0) * item.quantity).toLocaleString()}
                     </Typography>
                   </Box>
                 ))}
@@ -505,7 +566,9 @@ const Checkout = () => {
                 
                 {discount > 0 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, color: 'success.main' }}>
-                    <Typography variant="body1">Discount:</Typography>
+                    <Typography variant="body1">
+                      Discount{voucher && sellerVoucher ? ' (Admin + Seller)' : voucher ? ' (Admin)' : ' (Seller)'}:
+                    </Typography>
                     <Typography variant="body1">-₫{discount.toLocaleString()}</Typography>
                   </Box>
                 )}

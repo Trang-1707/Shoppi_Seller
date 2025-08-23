@@ -1,10 +1,23 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { FaSearch, FaShoppingCart, FaExchangeAlt } from "react-icons/fa";
-import { FiUser, FiShoppingBag, FiMessageSquare, FiLogOut } from "react-icons/fi";
+import {
+  FiUser,
+  FiShoppingBag,
+  FiMessageSquare,
+  FiLogOut,
+} from "react-icons/fi";
 import { IoStorefrontOutline } from "react-icons/io5";
-import { MdOutlineHistory, MdOutlineRateReview, MdOutlineLocalShipping } from "react-icons/md";
-import { RiUserSettingsLine, RiHomeSmileLine, RiShieldLine } from "react-icons/ri";
+import {
+  MdOutlineHistory,
+  MdOutlineRateReview,
+  MdOutlineLocalShipping,
+} from "react-icons/md";
+import {
+  RiUserSettingsLine,
+  RiHomeSmileLine,
+  RiShieldLine,
+} from "react-icons/ri";
 import Flex from "../../designLayouts/Flex";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -23,23 +36,31 @@ const HeaderBottom = () => {
   const ref = useRef();
 
   // Get authentication info from Redux store
-  const authState = useSelector(state => state.auth);
+  const authState = useSelector((state) => state.auth);
   const isAuthenticated = authState?.isAuthenticated || false;
   const user = authState?.user || null;
 
   // Get data from Redux store with safe checks
-  // Avoid depending on non-registered orebi reducer; keep local state instead
+  const orebiReducer = useSelector((state) => state.orebiReducer) || {};
+  const products = orebiReducer.products || [];
 
   // Get chat unread count
   const chatState = useSelector((state) => state.chat);
-  const chatNotifications = chatState?.conversations?.reduce((count, conv) => count + (conv.unreadCount || 0), 0) || 0;
+  const chatNotifications =
+    chatState?.conversations?.reduce(
+      (count, conv) => count + (conv.unreadCount || 0),
+      0
+    ) || 0;
 
   // Get cart information from Redux store
   const cartState = useSelector((state) => state.cart) || {};
   const cartItems = cartState.items || [];
 
   // Calculate total items in cart
-  const cartTotalCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const cartTotalCount = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
 
   const [showUser, setShowUser] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
@@ -47,7 +68,9 @@ const HeaderBottom = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [userName, setUserName] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('accessToken'));
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    !!localStorage.getItem("accessToken")
+  );
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:9999";
 
@@ -56,10 +79,10 @@ const HeaderBottom = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/products`);
       // Update to match backend model
-      const formattedProducts = response.data.data.map(product => ({
+      const formattedProducts = response.data.data.map((product) => ({
         ...product,
         name: product.title, // Backend uses 'title' field for product names
-        image: product.image
+        image: product.image,
       }));
 
       dispatch(setProducts(formattedProducts));
@@ -72,7 +95,7 @@ const HeaderBottom = () => {
   // Fetch user data function
   const fetchUserData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         setIsLoggedIn(false);
         return;
@@ -80,8 +103,8 @@ const HeaderBottom = () => {
 
       const response = await axios.get(`${API_BASE_URL}/api/profile`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const profile = response.data?.data || {};
       setUserName(profile.fullname || profile.username);
@@ -91,7 +114,7 @@ const HeaderBottom = () => {
       console.error("Failed to fetch user profile:", error);
       if (error.response && error.response.status === 401) {
         // Token expired or invalid
-        localStorage.removeItem('accessToken');
+        localStorage.removeItem("accessToken");
         setIsLoggedIn(false);
       }
     }
@@ -99,7 +122,7 @@ const HeaderBottom = () => {
 
   // Effect to check login status whenever component renders
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     setIsLoggedIn(!!token);
   }, []);
 
@@ -127,10 +150,14 @@ const HeaderBottom = () => {
   // Filter products when search query changes
   useEffect(() => {
     const filtered = allProducts
-      .filter((item) =>
-        (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter(
+        (item) =>
+          (item.title &&
+            item.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (item.name &&
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (item.description &&
+            item.description.toLowerCase().includes(searchQuery.toLowerCase()))
       )
       .map((item) => ({
         _id: item._id,
@@ -139,7 +166,7 @@ const HeaderBottom = () => {
         price: item.price,
         description: item.description,
         category: item.categoryId?.name || "",
-        seller: item.sellerId?.username || ""
+        seller: item.sellerId?.username || "",
       }));
 
     setFilteredProducts(filtered);
@@ -151,34 +178,34 @@ const HeaderBottom = () => {
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       await axios.post(`${API_BASE_URL}/api/logout`, null, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem("accessToken");
       dispatch(resetUserInfo());
       setIsLoggedIn(false);
       setUserName(null);
-      navigate('/signin');
+      navigate("/signin");
     } catch (error) {
       console.error("Logout failed:", error);
       // Still clear the token on the client side even if the API call fails
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem("accessToken");
       setIsLoggedIn(false);
       setUserName(null);
-      navigate('/signin');
+      navigate("/signin");
     }
   };
 
   const getProductImage = (item) => {
     if (!item.image) {
-      return placeholderDataUrl(100, 100, 'No Image');
+      return placeholderDataUrl(100, 100, "No Image");
     }
 
-    if (item.image.startsWith('http://') || item.image.startsWith('https://')) {
+    if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
       return item.image;
     } else {
       return `${API_BASE_URL}/uploads/${item.image}`;
@@ -235,12 +262,18 @@ const HeaderBottom = () => {
                         alt={item.name}
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = placeholderDataUrl(100, 100, 'No Image');
+                          e.target.src = placeholderDataUrl(
+                            100,
+                            100,
+                            "No Image"
+                          );
                         }}
                       />
                     </div>
                     <div className="flex flex-col gap-1 flex-1">
-                      <p className="font-semibold text-lg truncate text-[#2962ff]">{item.name}</p>
+                      <p className="font-semibold text-lg truncate text-[#2962ff]">
+                        {item.name}
+                      </p>
                       <p className="text-xs text-gray-600 line-clamp-2">
                         {item.description || "No description available"}
                       </p>
@@ -266,7 +299,10 @@ const HeaderBottom = () => {
           <div className="flex gap-8 mt-2 lg:mt-0 items-center pr-6 cursor-pointer relative">
             {/* Chat icon */}
             {isAuthenticated && (
-              <Link to="/chat" className="text-white hover:text-gray-200 transition-colors">
+              <Link
+                to="/chat"
+                className="text-white hover:text-gray-200 transition-colors"
+              >
                 <div className="flex flex-col items-center relative group">
                   <div className="bg-white/10 rounded-full p-2 group-hover:bg-white/20 transition-all">
                     <FiMessageSquare className="text-xl" />
@@ -310,7 +346,10 @@ const HeaderBottom = () => {
                           Hello, {userName}
                         </div>
                       )}
-                      <Link to="/order-history" onClick={() => setShowUser(false)}>
+                      <Link
+                        to="/order-history"
+                        onClick={() => setShowUser(false)}
+                      >
                         <div className="py-2 hover:bg-blue-50 px-3 rounded transition-colors flex items-center gap-3">
                           <MdOutlineHistory className="text-[#2962ff] text-lg" />
                           Order History
@@ -340,7 +379,10 @@ const HeaderBottom = () => {
                           Disputes
                         </div>
                       </Link>
-                      <Link to="/return-requests" onClick={() => setShowUser(false)}>
+                      <Link
+                        to="/return-requests"
+                        onClick={() => setShowUser(false)}
+                      >
                         <div className="py-2 hover:bg-blue-50 px-3 rounded transition-colors flex items-center gap-3">
                           <FaExchangeAlt className="text-[#2962ff] text-lg" />
                           Return Requests
@@ -374,7 +416,10 @@ const HeaderBottom = () => {
             </div>
 
             {/* Shopping Cart */}
-            <Link to="/cart" className="relative text-white hover:text-gray-200 transition-colors">
+            <Link
+              to="/cart"
+              className="relative text-white hover:text-gray-200 transition-colors"
+            >
               <div className="flex flex-col items-center group">
                 <div className="relative bg-white/10 rounded-full p-2 group-hover:bg-white/20 transition-all">
                   <FiShoppingBag className="text-xl" />
