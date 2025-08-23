@@ -131,18 +131,21 @@ const updateVoucher = async (req, res, next) => {
 const deleteVoucher = async (req, res, next) => {
   try {
     const sellerId = req.user.id;
+
     const voucher = await VoucherSeller.findOne({
       _id: req.params.id,
       sellerId,
     });
 
-    if (voucher) {
-      await voucher.remove();
-      res.json({ message: "Voucher removed" });
-    } else {
-      res.status(404).json({ message: "Voucher not found" });
+    if (!voucher) {
+      return res.status(404).json({ message: "Voucher not found" });
     }
+
+    // Thay vì voucher.remove()
+    await VoucherSeller.deleteOne({ _id: voucher._id });
+    res.json({ message: "Voucher removed" });
   } catch (error) {
+    console.error("Delete voucher error:", error);
     next(error);
   }
 };

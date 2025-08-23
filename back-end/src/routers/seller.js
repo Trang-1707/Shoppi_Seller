@@ -6,10 +6,7 @@ const imageController = require("../controllers/imageController");
 const { upload } = require("../config/minio");
 const { productCreateLimiter } = require("../middleware/rateLimit.middleware");
 const { verifyRecaptcha } = require("../middleware/recaptcha.middleware");
-
 const voucherSellerController = require("../controllers/voucherSellerController");
-const imageController = require("../controllers/imageController");
-const { upload } = require("../config/cloudinary");
 
 // Đăng nhập và chuyển chế độ
 router.post("/login", sellerController.loginAndSwitch);

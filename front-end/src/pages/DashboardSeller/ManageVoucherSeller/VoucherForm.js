@@ -61,7 +61,10 @@ const VoucherSellerForm = ({
           setErrorProducts(null);
           const res = await api.get("/seller/products");
           console.log("Products response:", res.data);
-          setProducts(res.data.data || []);
+          const filteredProducts =
+            res.data.data?.filter((p) => p != null) || [];
+          console.log("Filtered products:", filteredProducts);
+          setProducts(filteredProducts);
         } catch (err) {
           console.error("Error fetching products:", err);
           setErrorProducts("Failed to load products. Please try again.");
@@ -77,6 +80,23 @@ const VoucherSellerForm = ({
   // Nếu đang edit voucher
   useEffect(() => {
     if (voucher && isEdit) {
+      const getProductId = (p) => {
+        if (!p) return null;
+        if (typeof p === "string") return p;
+        if (p.$oid) return p.$oid; // Lấy ID từ $oid (từ applicableProducts)
+        if (p._id?.$oid) return p._id.$oid;
+        if (p._id) return p._id;
+        return null;
+      };
+
+      const applicableProductIds =
+        voucher.applicableProducts?.map(getProductId).filter((id) => {
+          // Kiểm tra xem ID từ voucher có khớp với productId._id trong products
+          return products.some((p) => p?.productId?._id === id);
+        }) || [];
+
+      console.log("Extracted applicableProducts IDs:", applicableProductIds);
+
       setFormData({
         code: voucher.code || "",
         discount: voucher.discount || "",
@@ -89,15 +109,12 @@ const VoucherSellerForm = ({
           : "",
         isActive: voucher.isActive !== undefined ? voucher.isActive : true,
         applicableShop: voucher.applicableShop || false,
-        applicableProducts:
-          voucher.applicableProducts?.map((p) =>
-            typeof p === "object" ? p._id : p
-          ) || [],
+        applicableProducts: applicableProductIds,
       });
     } else {
       setFormData(initialState);
     }
-  }, [voucher, isEdit, open]);
+  }, [voucher, isEdit, open, products]); // Thêm products để đồng bộ
 
   const formatDateForInput = (date) => {
     const d = new Date(date);
@@ -230,7 +247,6 @@ const VoucherSellerForm = ({
       <DialogContent dividers>
         <Box component="form" noValidate sx={{ mt: 2 }}>
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            {/* Voucher fields */}
             <TextField
               label="Voucher Code"
               name="code"
@@ -378,24 +394,36 @@ const VoucherSellerForm = ({
                   input={<OutlinedInput label="Applicable Products" />}
                   renderValue={(selected) =>
                     selected
-                      .map(
-                        (id) =>
-                          products.find((p) => p._id === id)?.productId
-                            ?.title || "Unknown Product"
-                      )
+                      .map((id) => {
+                        const product = products.find(
+                          (p) => p.productId?._id === id
+                        );
+                        return (
+                          product?.productId?.title ||
+                          `ID: ${id} (Không tìm thấy)`
+                        );
+                      })
                       .join(", ")
                   }
                 >
-                  {products.map((product) => (
-                    <MenuItem key={product._id} value={product._id}>
-                      <Checkbox
-                        checked={formData.applicableProducts.includes(
-                          product._id
-                        )}
-                      />
-                      <Typography>{product.productId?.title}</Typography>
-                    </MenuItem>
-                  ))}
+                  {products.map(
+                    (product) =>
+                      product && (
+                        <MenuItem
+                          key={product.productId?._id}
+                          value={product.productId?._id}
+                        >
+                          <Checkbox
+                            checked={formData.applicableProducts.includes(
+                              product.productId?._id
+                            )}
+                          />
+                          <Typography>
+                            {product.productId?.title || "Sản phẩm không tên"}
+                          </Typography>
+                        </MenuItem>
+                      )
+                  )}
                 </Select>
               )}
               <FormHelperText>
