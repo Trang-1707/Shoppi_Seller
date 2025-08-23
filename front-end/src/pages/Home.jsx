@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { 
-  Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  Typography, 
-  Button, 
-  Box, 
+import {
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  Button,
+  Box,
   CircularProgress,
   FormGroup,
   FormControlLabel,
@@ -38,6 +38,7 @@ import SortIcon from '@mui/icons-material/Sort';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { motion } from 'framer-motion';
+import { placeholderDataUrl } from '../utils/placeholder';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -50,10 +51,10 @@ const Home = () => {
   const [favoriteProducts, setFavoriteProducts] = useState({});
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   // Get authentication info from Redux store
   const authState = useSelector(state => state.auth);
   const isAuthenticated = authState?.isAuthenticated || false;
@@ -61,12 +62,12 @@ const Home = () => {
   const token = authState?.token || null;
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:9999";
-  
+
   // Check payment status from URL when redirected from PayOS
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const paymentStatus = query.get('paymentStatus');
-    
+
     if (paymentStatus === 'paid') {
       toast.success('Payment successful!');
       // Remove query parameter after displaying the notification
@@ -97,14 +98,14 @@ const Home = () => {
     try {
       setLoading(true);
       let url = `${API_BASE_URL}/api/products`;
-      
+
       if (selectedCategories.length > 0) {
         const categoryIds = selectedCategories.join(',');
         url += `?categories=${categoryIds}`;
       }
-      
+
       const response = await axios.get(url);
-      
+
       const formattedProducts = response.data.data.map(product => {
         let imageUrl;
         if (product.image) {
@@ -116,7 +117,7 @@ const Home = () => {
             imageUrl = `${API_BASE_URL}/uploads/${product.image}`;
           }
         } else {
-          imageUrl = 'https://via.placeholder.com/300';
+          imageUrl = placeholderDataUrl(300, 300, 'No Image');
         }
 
         return {
@@ -128,7 +129,7 @@ const Home = () => {
           reviewCount: product.reviewCount || 0 // Extract review count or default to 0
         };
       });
-      
+
       setProducts(formattedProducts);
     } catch (error) {
       toast.error('Error loading products');
@@ -150,7 +151,7 @@ const Home = () => {
 
   const handleImageError = (e) => {
     e.target.onerror = null;
-    e.target.src = 'https://via.placeholder.com/300?text=No+Image';
+    e.target.src = placeholderDataUrl(300, 300, 'No Image');
   };
 
   // Handle when selecting/deselecting categories
@@ -171,19 +172,19 @@ const Home = () => {
       navigate('/signin');
       return;
     }
-    
+
     // Find the product to check if it belongs to the seller
     const productToAdd = products.find(p => p._id === productId);
-    
+
     // Prevent seller from adding their own product
     if (user?.role === 'seller' && productToAdd && productToAdd.sellerId?._id === user.id) {
       toast.warning('You cannot add your own products to cart');
       return;
     }
-    
+
     try {
       setAddingToCart(prev => ({ ...prev, [productId]: true }));
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/api/buyers/cart/add`,
         { productId, quantity: 1 },
@@ -193,7 +194,7 @@ const Home = () => {
           }
         }
       );
-      
+
       toast.success('Product added to cart!');
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -209,12 +210,12 @@ const Home = () => {
       toast.info('Please sign in to favorite products');
       return;
     }
-    
+
     setFavoriteProducts(prev => ({
       ...prev,
       [productId]: !prev[productId]
     }));
-    
+
     // This is just for demonstration - normally would call an API
     if (!favoriteProducts[productId]) {
       toast.success('Added to favorites!');
@@ -289,7 +290,7 @@ const Home = () => {
             Discover Products
           </Typography>
         </Box>
-        
+
         <Grid container spacing={4}>
           <Grid item xs={12} md={3}>
             <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
@@ -297,13 +298,13 @@ const Home = () => {
                 <FilterListIcon sx={{ mr: 1, color: '#0F52BA' }} />
                 <Skeleton variant="text" width={100} animation="wave" />
               </Box>
-              
+
               {Array.from(new Array(5)).map((_, index) => (
                 <Skeleton key={index} variant="text" height={30} animation="wave" sx={{ my: 1 }} />
               ))}
             </Paper>
           </Grid>
-          
+
           <Grid item xs={12} md={9}>
             <Grid container spacing={3}>
               <ProductSkeleton />
@@ -323,20 +324,20 @@ const Home = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             mb: 5,
             borderBottom: '2px solid #e0e0e0',
             pb: 3
           }}
         >
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 700, 
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
               background: 'linear-gradient(45deg, #0F52BA, #5E91F5)',
               backgroundClip: 'text',
               textFillColor: 'transparent',
@@ -359,7 +360,7 @@ const Home = () => {
           </Typography>
         </Box>
       </motion.div>
-      
+
       <Grid container spacing={4}>
         <Grid item xs={12} md={3}>
           <motion.div
@@ -367,11 +368,11 @@ const Home = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 3, 
-                mb: 4, 
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
+                mb: 4,
                 borderRadius: 3,
                 background: 'linear-gradient(145deg, #ffffff, #f5f7ff)',
                 border: '1px solid #eaeaea',
@@ -382,22 +383,22 @@ const Home = () => {
                 <FilterListIcon sx={{ mr: 1.5, color: '#0F52BA', fontSize: 24 }} />
                 <Typography variant="h6" fontWeight="700" color="#333">Filters</Typography>
               </Box>
-              
+
               <Divider sx={{ mb: 3, borderColor: 'rgba(0,0,0,0.08)' }} />
-              
-              <Typography 
-                variant="subtitle1" 
+
+              <Typography
+                variant="subtitle1"
                 sx={{ mb: 2, fontWeight: 'bold', color: '#444', fontSize: '1.05rem' }}
               >
                 Categories
               </Typography>
-              
+
               <FormGroup>
                 {categories.map(category => (
                   <FormControlLabel
                     key={category._id}
                     control={
-                      <Checkbox 
+                      <Checkbox
                         checked={selectedCategories.includes(category._id)}
                         onChange={() => handleCategoryChange(category._id)}
                         size="small"
@@ -418,11 +419,11 @@ const Home = () => {
                   />
                 ))}
               </FormGroup>
-              
-              <Button 
-                variant="outlined" 
-                fullWidth 
-                sx={{ 
+
+              <Button
+                variant="outlined"
+                fullWidth
+                sx={{
                   mt: 3,
                   color: '#0F52BA',
                   borderColor: '#0F52BA',
@@ -440,10 +441,10 @@ const Home = () => {
               </Button>
             </Paper>
 
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 3, 
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
                 borderRadius: 3,
                 background: 'linear-gradient(145deg, #ffffff, #f5f7ff)',
                 border: '1px solid #eaeaea',
@@ -454,13 +455,13 @@ const Home = () => {
                 <SortIcon sx={{ mr: 1.5, color: '#0F52BA', fontSize: 24 }} />
                 <Typography variant="h6" fontWeight="700" color="#333">Sort By</Typography>
               </Box>
-              
+
               <Divider sx={{ mb: 3, borderColor: 'rgba(0,0,0,0.08)' }} />
-              
+
               <FormGroup>
                 <FormControlLabel
                   control={
-                    <Checkbox 
+                    <Checkbox
                       checked={sortOrder === 'default'}
                       onChange={() => handleSortChange('default')}
                       size="small"
@@ -481,7 +482,7 @@ const Home = () => {
                 />
                 <FormControlLabel
                   control={
-                    <Checkbox 
+                    <Checkbox
                       checked={sortOrder === 'price-asc'}
                       onChange={() => handleSortChange('price-asc')}
                       size="small"
@@ -502,7 +503,7 @@ const Home = () => {
                 />
                 <FormControlLabel
                   control={
-                    <Checkbox 
+                    <Checkbox
                       checked={sortOrder === 'price-desc'}
                       onChange={() => handleSortChange('price-desc')}
                       size="small"
@@ -523,7 +524,7 @@ const Home = () => {
                 />
                 <FormControlLabel
                   control={
-                    <Checkbox 
+                    <Checkbox
                       checked={sortOrder === 'name-asc'}
                       onChange={() => handleSortChange('name-asc')}
                       size="small"
@@ -544,7 +545,7 @@ const Home = () => {
                 />
                 <FormControlLabel
                   control={
-                    <Checkbox 
+                    <Checkbox
                       checked={sortOrder === 'name-desc'}
                       onChange={() => handleSortChange('name-desc')}
                       size="small"
@@ -567,7 +568,7 @@ const Home = () => {
             </Paper>
           </motion.div>
         </Grid>
-        
+
         <Grid item xs={12} md={9}>
           {selectedCategories.length > 0 && (
             <motion.div
@@ -579,12 +580,12 @@ const Home = () => {
                 {selectedCategories.map(catId => {
                   const category = categories.find(c => c._id === catId);
                   return category ? (
-                    <Chip 
+                    <Chip
                       key={catId}
                       label={category.name}
                       onDelete={() => handleCategoryChange(catId)}
                       color="primary"
-                      sx={{ 
+                      sx={{
                         backgroundColor: '#0F52BA',
                         borderRadius: 6,
                         px: 0.5,
@@ -599,12 +600,12 @@ const Home = () => {
                     />
                   ) : null;
                 })}
-                
-                <Chip 
+
+                <Chip
                   label="Clear All"
                   onClick={() => setSelectedCategories([])}
                   variant="outlined"
-                  sx={{ 
+                  sx={{
                     borderColor: '#0F52BA',
                     color: '#0F52BA',
                     borderRadius: 6,
@@ -614,24 +615,24 @@ const Home = () => {
               </Box>
             </motion.div>
           )}
-          
+
           <Box sx={{ mb: 3.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
               Showing <span style={{ fontWeight: 700, color: '#0F52BA' }}>{sortedProducts.length}</span> products
             </Typography>
           </Box>
-          
+
           {sortedProducts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Paper 
-                elevation={2} 
-                sx={{ 
-                  textAlign: 'center', 
-                  p: 8, 
+              <Paper
+                elevation={2}
+                sx={{
+                  textAlign: 'center',
+                  p: 8,
                   borderRadius: 3,
                   backgroundColor: '#f9f9ff',
                   border: '1px dashed rgba(15, 82, 186, 0.3)'
@@ -640,10 +641,10 @@ const Home = () => {
                 <Typography variant="h6" sx={{ mb: 3, color: '#555', fontWeight: 600 }}>
                   No products match your criteria
                 </Typography>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   onClick={() => setSelectedCategories([])}
-                  sx={{ 
+                  sx={{
                     backgroundColor: '#0F52BA',
                     borderRadius: 2,
                     px: 4,
@@ -665,15 +666,15 @@ const Home = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
-                      duration: 0.5, 
-                      delay: index * 0.08, 
-                      ease: [0.25, 0.1, 0.25, 1.0] 
+                    transition={{
+                      duration: 0.5,
+                      delay: index * 0.08,
+                      ease: [0.25, 0.1, 0.25, 1.0]
                     }}
                   >
-                    <Card sx={{ 
-                      height: '100%', 
-                      display: 'flex', 
+                    <Card sx={{
+                      height: '100%',
+                      display: 'flex',
                       flexDirection: 'column',
                       transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1.0)',
                       borderRadius: 4,
@@ -686,10 +687,10 @@ const Home = () => {
                       }
                     }}>
                       {product.rating >= 4.5 && (
-                        <Box sx={{ 
-                          position: 'absolute', 
-                          top: 12, 
-                          left: 12, 
+                        <Box sx={{
+                          position: 'absolute',
+                          top: 12,
+                          left: 12,
                           zIndex: 2,
                           backgroundColor: '#0F52BA',
                           color: 'white',
@@ -707,8 +708,8 @@ const Home = () => {
                           Top Rated
                         </Box>
                       )}
-                      
-                      <Box sx={{ 
+
+                      <Box sx={{
                         position: 'relative',
                         height: '240px',
                         overflow: 'hidden',
@@ -729,25 +730,25 @@ const Home = () => {
                               transform: 'scale(1.08)'
                             }
                           }}
-                          image={product.imageUrl || 'https://via.placeholder.com/300?text=No+Image'}
+                          image={product.imageUrl || placeholderDataUrl(300, 300, 'No Image')}
                           alt={product.title || "Product Image"}
                           onError={handleImageError}
                           onClick={() => handleProductClick(product)}
                         />
-                        
-                        <Box sx={{ 
-                          position: 'absolute', 
-                          top: 12, 
-                          right: 12, 
+
+                        <Box sx={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 1
                         }}>
                           <Tooltip title="View Details">
-                            <IconButton 
-                              size="small" 
-                              sx={{ 
-                                backgroundColor: 'white', 
+                            <IconButton
+                              size="small"
+                              sx={{
+                                backgroundColor: 'white',
                                 boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
                                 transition: 'all 0.3s ease',
                                 '&:hover': {
@@ -761,12 +762,12 @@ const Home = () => {
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          
+
                           <Tooltip title={favoriteProducts[product._id] ? "Remove from Favorites" : "Add to Favorites"}>
-                            <IconButton 
-                              size="small" 
-                              sx={{ 
-                                backgroundColor: 'white', 
+                            <IconButton
+                              size="small"
+                              sx={{
+                                backgroundColor: 'white',
                                 boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
                                 transition: 'all 0.3s ease',
                                 color: favoriteProducts[product._id] ? '#ff3d71' : 'inherit',
@@ -778,52 +779,52 @@ const Home = () => {
                               }}
                               onClick={() => handleToggleFavorite(product._id)}
                             >
-                              {favoriteProducts[product._id] ? 
-                                <FavoriteIcon fontSize="small" /> : 
+                              {favoriteProducts[product._id] ?
+                                <FavoriteIcon fontSize="small" /> :
                                 <FavoriteBorderIcon fontSize="small" />
                               }
                             </IconButton>
                           </Tooltip>
                         </Box>
                       </Box>
-                      
+
                       <CardContent sx={{ flexGrow: 1, p: 3, pt: 2.5, pb: 1.5 }}>
                         <Box sx={{ mb: 1 }}>
-                          <Chip 
-                            label={product.categoryName} 
-                            size="small" 
-                            sx={{ 
-                              backgroundColor: 'rgba(15, 82, 186, 0.08)', 
+                          <Chip
+                            label={product.categoryName}
+                            size="small"
+                            sx={{
+                              backgroundColor: 'rgba(15, 82, 186, 0.08)',
                               color: '#0F52BA',
                               fontWeight: 600,
                               fontSize: '0.7rem',
                               borderRadius: 6,
                               height: 22
-                            }} 
+                            }}
                           />
                           {product.inventory && product.inventory.quantity < 5 && product.inventory.quantity > 0 && (
-                            <Chip 
-                              label="Low Stock" 
-                              size="small" 
-                              sx={{ 
-                                backgroundColor: '#fff0e1', 
+                            <Chip
+                              label="Low Stock"
+                              size="small"
+                              sx={{
+                                backgroundColor: '#fff0e1',
                                 color: '#ff9500',
                                 fontWeight: 600,
                                 fontSize: '0.7rem',
                                 ml: 1,
                                 borderRadius: 6,
                                 height: 22
-                              }} 
+                              }}
                             />
                           )}
                         </Box>
-                        
-                        <Typography 
-                          gutterBottom 
-                          variant="h6" 
-                          component="div" 
+
+                        <Typography
+                          gutterBottom
+                          variant="h6"
+                          component="div"
                           fontWeight="700"
-                          sx={{ 
+                          sx={{
                             fontSize: '1.1rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -838,13 +839,13 @@ const Home = () => {
                         >
                           {product.title || "Untitled Product"}
                         </Typography>
-                        
+
                         <Box display="flex" alignItems="center" mb={1.5}>
-                          <Rating 
-                            value={product.rating || 0} 
-                            readOnly 
-                            size="small" 
-                            precision={0.5} 
+                          <Rating
+                            value={product.rating || 0}
+                            readOnly
+                            size="small"
+                            precision={0.5}
                             sx={{
                               '& .MuiRating-iconFilled': {
                                 color: '#0F52BA',
@@ -852,15 +853,15 @@ const Home = () => {
                             }}
                           />
                           <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: 600 }}>{product.rating ? product.rating.toFixed(1) : '0.0'}</span> 
+                            <span style={{ fontWeight: 600 }}>{product.rating ? product.rating.toFixed(1) : '0.0'}</span>
                             {product.reviewCount > 0 && <span> ({product.reviewCount})</span>}
                           </Typography>
                         </Box>
-                        
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
+
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
                             mb: 2,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -874,7 +875,7 @@ const Home = () => {
                         >
                           {product.description || 'No description available'}
                         </Typography>
-                        
+
                         {product.freeShipping && (
                           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 0.7 }}>
                             <LocalShippingIcon sx={{ fontSize: '1rem', color: '#36b37e' }} />
@@ -883,17 +884,17 @@ const Home = () => {
                             </Typography>
                           </Box>
                         )}
-                        
-                        <Box sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
+
+                        <Box sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
                           mb: 1.5,
                           mt: 2
                         }}>
-                          <Typography 
-                            variant="h6" 
-                            fontWeight="800" 
+                          <Typography
+                            variant="h6"
+                            fontWeight="800"
                             sx={{
                               color: '#0F52BA',
                               fontSize: '1.3rem',
@@ -901,22 +902,22 @@ const Home = () => {
                           >
                             ${product.price?.toFixed(2)}
                           </Typography>
-                          
+
                           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.85rem' }}>
                             By {product.sellerName}
                           </Typography>
                         </Box>
                       </CardContent>
-                      
+
                       <CardActions sx={{ p: 0 }}>
-                        <Button 
+                        <Button
                           variant="contained"
                           fullWidth
                           startIcon={<AddShoppingCartIcon />}
                           onClick={() => handleAddToCart(product._id)}
                           disabled={addingToCart[product._id]}
-                          sx={{ 
-                            backgroundColor: '#0F52BA', 
+                          sx={{
+                            backgroundColor: '#0F52BA',
                             borderRadius: 0,
                             py: 1.5,
                             fontWeight: 600,

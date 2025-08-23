@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Slider from "react-slick";
-import { bannerImgOne } from "../../assets/images";
+import bannerImgOne from "../../assets/images/banner/bannerImgOne.webp";
 import Image from "../designLayouts/Image";
 import { Box, Typography, Button, Container } from "@mui/material";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -161,16 +161,16 @@ const CustomSlide = ({ Subtext, imgSrc, text, buttonLink, buttonText }) => (
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box 
-                component="span" 
-                sx={{ 
-                  width: 6, 
-                  height: 6, 
-                  borderRadius: "50%", 
-                  backgroundColor: "#4ECDC4", 
+              <Box
+                component="span"
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  backgroundColor: "#4ECDC4",
                   mr: 1,
                   display: "inline-block"
-                }} 
+                }}
               />
               <Typography variant="body2" sx={{ color: "#6D6D6D" }}>
                 Bảo hành 12 tháng
@@ -258,16 +258,16 @@ const Banner = () => {
           transform: "translateX(-50%)",
         }}
       >
-        <ul 
-          style={{ 
-            margin: "0px", 
-            padding: 0, 
-            display: "flex", 
+        <ul
+          style={{
+            margin: "0px",
+            padding: 0,
+            display: "flex",
             justifyContent: "center",
             gap: "8px"
           }}
-        > 
-          {dots} 
+        >
+          {dots}
         </ul>
       </Box>
     ),
@@ -277,25 +277,25 @@ const Banner = () => {
         sx={
           i === dotActive
             ? {
-                width: "12px",
-                height: "12px",
-                border: "none",
-                borderRadius: "50%",
-                backgroundColor: "#0F52BA",
-                cursor: "pointer",
-                padding: 0,
-                transition: "all 0.3s ease",
-              }
+              width: "12px",
+              height: "12px",
+              border: "none",
+              borderRadius: "50%",
+              backgroundColor: "#0F52BA",
+              cursor: "pointer",
+              padding: 0,
+              transition: "all 0.3s ease",
+            }
             : {
-                width: "10px",
-                height: "10px",
-                border: "none",
-                borderRadius: "50%",
-                backgroundColor: "rgba(15, 82, 186, 0.3)",
-                cursor: "pointer",
-                padding: 0,
-                transition: "all 0.3s ease",
-              }
+              width: "10px",
+              height: "10px",
+              border: "none",
+              borderRadius: "50%",
+              backgroundColor: "rgba(15, 82, 186, 0.3)",
+              cursor: "pointer",
+              padding: 0,
+              transition: "all 0.3s ease",
+            }
         }
       />
     ),

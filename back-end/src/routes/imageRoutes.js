@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const imageController = require('../controllers/imageController');
-const { upload } = require('../config/cloudinary');
+const { upload } = require('../config/minio');
 
 // Upload a single image
 router.post('/upload', upload.single('image'), imageController.uploadImage);

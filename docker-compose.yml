@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    image: shopii-backend:latest
+    container_name: shopii-backend
+    env_file:
+      - ./back-end/.env
+    environment:
+      PORT: "9999"
+    expose:
+      - "9999"
+    networks:
+      - shopii
+
+  frontend:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://api-girl.liteease.com}
+        REACT_APP_RECAPTCHA_SITE_KEY: ${REACT_APP_RECAPTCHA_SITE_KEY:-6Ld1HK8rAAAAAKhqbTsWf27zFTWug5a-Fzv6qYGK}
+    image: shopii-frontend:latest
+    container_name: shopii-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - shopii
+
+networks:
+  shopii:
+    driver: bridge 

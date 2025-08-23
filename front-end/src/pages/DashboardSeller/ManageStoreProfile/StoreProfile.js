@@ -19,6 +19,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import LocationCityIcon from '@mui/icons-material/LocationCity';
 import PublicIcon from '@mui/icons-material/Public';
 import SellerService from '../../../services/api/SellerService';
+import { api } from '../../../services';
 
 // Styled Components
 const InfoSectionCard = styled(Card)(({ theme }) => ({
@@ -105,6 +106,20 @@ export default function StoreProfile() {
             setOpenEditStore(false);
         } finally {
             setSavingStore(false);
+        }
+    };
+    const handleBannerUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const fd = new FormData();
+            fd.append('image', file);
+            const res = await api.post('/images/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            if (res.data?.success) {
+                setFormStore(prev => ({ ...prev, bannerImageURL: res.data.data.url }));
+            }
+        } catch (err) {
+            console.error('Upload banner failed', err);
         }
     };
 
@@ -214,7 +229,7 @@ export default function StoreProfile() {
                     </CardContent>
                 </InfoSectionCard>
             </Grid>
-            
+
             {/* Edit Store Dialog with new card design */}
             <AnimatePresence>
                 {openEditStore && (
@@ -229,39 +244,42 @@ export default function StoreProfile() {
                                     <DialogCard variants={cardVariants}>
                                         <Typography variant="subtitle1" fontWeight={600} mb={2}>Basic Information</Typography>
                                         <Stack spacing={2}>
-                                            <TextField 
-                                                label="Store Name" 
-                                                name="storeName" 
-                                                value={formStore.storeName} 
-                                                onChange={handleChangeStore} 
-                                                fullWidth 
-                                                variant="outlined" 
-                                                InputProps={{ startAdornment: <StorefrontIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                            <TextField
+                                                label="Store Name"
+                                                name="storeName"
+                                                value={formStore.storeName}
+                                                onChange={handleChangeStore}
+                                                fullWidth
+                                                variant="outlined"
+                                                InputProps={{ startAdornment: <StorefrontIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                             />
-                                            <TextField 
-                                                label="Description" 
-                                                name="description" 
-                                                value={formStore.description} 
-                                                onChange={handleChangeStore} 
-                                                multiline 
-                                                minRows={2} 
-                                                fullWidth 
-                                                variant="outlined" 
+                                            <TextField
+                                                label="Description"
+                                                name="description"
+                                                value={formStore.description}
+                                                onChange={handleChangeStore}
+                                                multiline
+                                                minRows={2}
+                                                fullWidth
+                                                variant="outlined"
                                                 InputProps={{ startAdornment: <NotesIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                             />
                                         </Stack>
                                     </DialogCard>
                                     <DialogCard variants={cardVariants}>
                                         <Typography variant="subtitle1" fontWeight={600} mb={2}>Branding</Typography>
-                                        <TextField 
-                                            label="Banner Image URL" 
-                                            name="bannerImageURL" 
-                                            value={formStore.bannerImageURL} 
-                                            onChange={handleChangeStore} 
-                                            fullWidth 
-                                            variant="outlined" 
-                                            InputProps={{ startAdornment: <ImageSearchIcon sx={{ color: 'action.active', mr: 1 }} /> }}
-                                        />
+                                        <Stack spacing={1}>
+                                            <TextField
+                                                label="Banner Image URL"
+                                                name="bannerImageURL"
+                                                value={formStore.bannerImageURL}
+                                                onChange={handleChangeStore}
+                                                fullWidth
+                                                variant="outlined"
+                                                InputProps={{ startAdornment: <ImageSearchIcon sx={{ color: 'action.active', mr: 1 }} /> }}
+                                            />
+                                            <Button component="label" variant="outlined">Upload Banner<input type="file" accept="image/*" hidden onChange={handleBannerUpload} /></Button>
+                                        </Stack>
                                     </DialogCard>
                                 </Stack>
                             </DialogContentStyled>
@@ -290,41 +308,41 @@ export default function StoreProfile() {
                                     <DialogCard variants={cardVariants}>
                                         <Typography variant="subtitle1" fontWeight={600} mb={2}>Personal Information</Typography>
                                         <Stack spacing={2}>
-                                            <TextField 
-                                                label="Username" 
-                                                name="username" 
-                                                value={formSeller.username} 
-                                                onChange={handleChangeSeller} 
-                                                fullWidth 
-                                                variant="outlined" 
-                                                InputProps={{ startAdornment: <PersonIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                            <TextField
+                                                label="Username"
+                                                name="username"
+                                                value={formSeller.username}
+                                                onChange={handleChangeSeller}
+                                                fullWidth
+                                                variant="outlined"
+                                                InputProps={{ startAdornment: <PersonIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                             />
-                                            <TextField 
-                                                label="Full Name" 
-                                                name="fullname" 
-                                                value={formSeller.fullname} 
-                                                onChange={handleChangeSeller} 
-                                                fullWidth 
-                                                variant="outlined" 
-                                                InputProps={{ startAdornment: <PersonIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                            <TextField
+                                                label="Full Name"
+                                                name="fullname"
+                                                value={formSeller.fullname}
+                                                onChange={handleChangeSeller}
+                                                fullWidth
+                                                variant="outlined"
+                                                InputProps={{ startAdornment: <PersonIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                             />
-                                            <TextField 
-                                                label="Email" 
-                                                name="email" 
-                                                value={formSeller.email} 
-                                                onChange={handleChangeSeller} 
-                                                type="email" 
-                                                fullWidth 
-                                                variant="outlined" 
-                                                InputProps={{ startAdornment: <EmailIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                            <TextField
+                                                label="Email"
+                                                name="email"
+                                                value={formSeller.email}
+                                                onChange={handleChangeSeller}
+                                                type="email"
+                                                fullWidth
+                                                variant="outlined"
+                                                InputProps={{ startAdornment: <EmailIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                             />
-                                            <TextField 
-                                                label="Avatar URL" 
-                                                name="avatar" 
-                                                value={formSeller.avatar} 
-                                                onChange={handleChangeSeller} 
-                                                fullWidth 
-                                                variant="outlined" 
+                                            <TextField
+                                                label="Avatar URL"
+                                                name="avatar"
+                                                value={formSeller.avatar}
+                                                onChange={handleChangeSeller}
+                                                fullWidth
+                                                variant="outlined"
                                                 InputProps={{ startAdornment: <ImageSearchIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                             />
                                         </Stack>
@@ -333,57 +351,57 @@ export default function StoreProfile() {
                                         <Typography variant="subtitle1" fontWeight={600} mb={2}>Contact & Address</Typography>
                                         <Grid container spacing={2}>
                                             <Grid item xs={12}>
-                                                <TextField 
-                                                    label="Phone" 
-                                                    name="phone" 
-                                                    value={formSeller.phone} 
-                                                    onChange={handleChangeSeller} 
-                                                    fullWidth 
-                                                    variant="outlined" 
-                                                    InputProps={{ startAdornment: <PhoneIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                                <TextField
+                                                    label="Phone"
+                                                    name="phone"
+                                                    value={formSeller.phone}
+                                                    onChange={handleChangeSeller}
+                                                    fullWidth
+                                                    variant="outlined"
+                                                    InputProps={{ startAdornment: <PhoneIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                                 />
                                             </Grid>
                                             <Grid item xs={12} sm={6}>
-                                                <TextField 
-                                                    label="Street" 
-                                                    name="street" 
-                                                    value={formSeller.street} 
-                                                    onChange={handleChangeSeller} 
-                                                    fullWidth 
-                                                    variant="outlined" 
-                                                    InputProps={{ startAdornment: <HomeIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                                <TextField
+                                                    label="Street"
+                                                    name="street"
+                                                    value={formSeller.street}
+                                                    onChange={handleChangeSeller}
+                                                    fullWidth
+                                                    variant="outlined"
+                                                    InputProps={{ startAdornment: <HomeIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                                 />
                                             </Grid>
                                             <Grid item xs={12} sm={6}>
-                                                <TextField 
-                                                    label="City" 
-                                                    name="city" 
-                                                    value={formSeller.city} 
-                                                    onChange={handleChangeSeller} 
-                                                    fullWidth 
-                                                    variant="outlined" 
-                                                    InputProps={{ startAdornment: <LocationCityIcon sx={{ color: 'action.active', mr: 1 }} /> }} 
+                                                <TextField
+                                                    label="City"
+                                                    name="city"
+                                                    value={formSeller.city}
+                                                    onChange={handleChangeSeller}
+                                                    fullWidth
+                                                    variant="outlined"
+                                                    InputProps={{ startAdornment: <LocationCityIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                                 />
                                             </Grid>
                                             <Grid item xs={12} sm={6}>
-                                                <TextField 
-                                                    label="State" 
-                                                    name="state" 
-                                                    value={formSeller.state} 
-                                                    onChange={handleChangeSeller} 
-                                                    fullWidth 
-                                                    variant="outlined" 
+                                                <TextField
+                                                    label="State"
+                                                    name="state"
+                                                    value={formSeller.state}
+                                                    onChange={handleChangeSeller}
+                                                    fullWidth
+                                                    variant="outlined"
                                                     InputProps={{ startAdornment: <MapIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                                 />
                                             </Grid>
                                             <Grid item xs={12} sm={6}>
-                                                <TextField 
-                                                    label="Country" 
-                                                    name="country" 
-                                                    value={formSeller.country} 
-                                                    onChange={handleChangeSeller} 
-                                                    fullWidth 
-                                                    variant="outlined" 
+                                                <TextField
+                                                    label="Country"
+                                                    name="country"
+                                                    value={formSeller.country}
+                                                    onChange={handleChangeSeller}
+                                                    fullWidth
+                                                    variant="outlined"
                                                     InputProps={{ startAdornment: <PublicIcon sx={{ color: 'action.active', mr: 1 }} /> }}
                                                 />
                                             </Grid>
