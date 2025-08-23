@@ -98,7 +98,6 @@ const createOrder = async (req, res) => {
     const productDetails = {};
 
     for (const item of selectedItems) {
-      // Validate product exists
       const product = await Product.findById(item.productId);
       if (!product) {
         return res
@@ -106,7 +105,6 @@ const createOrder = async (req, res) => {
           .json({ error: `Product ${item.productId} not found` });
       }
 
-      // Find or create inventory record
       let inventory = await Inventory.findOne({ productId: item.productId });
 
       // If inventory doesn't exist, create it with 0 quantity
@@ -125,9 +123,8 @@ const createOrder = async (req, res) => {
         });
       }
 
-      const unitPrice = product.price;
-      subtotal += unitPrice * item.quantity;
-      productDetails[item.productId] = { unitPrice };
+      subtotal += product.price * item.quantity;
+      productDetails[item.productId] = { unitPrice: product.price };
     }
 
     // Step 2: Apply vouchers if provided
@@ -143,11 +140,9 @@ const createOrder = async (req, res) => {
       }
 
       if (subtotal < voucher.minOrderValue) {
-        return res
-          .status(400)
-          .json({
-            error: `Order must be at least ${voucher.minOrderValue} to apply admin voucher`,
-          });
+        return res.status(400).json({
+          error: `Order must be at least ${voucher.minOrderValue} to apply admin voucher`,
+        });
       }
 
       if (voucher.discountType === "fixed") {
@@ -179,11 +174,9 @@ const createOrder = async (req, res) => {
       }
 
       if (subtotal < sellerVoucher.minOrderValue) {
-        return res
-          .status(400)
-          .json({
-            error: `Order must be at least ${sellerVoucher.minOrderValue} to apply seller voucher`,
-          });
+        return res.status(400).json({
+          error: `Order must be at least ${sellerVoucher.minOrderValue} to apply seller voucher`,
+        });
       }
 
       if (sellerVoucher.discountType === "fixed") {
@@ -203,16 +196,36 @@ const createOrder = async (req, res) => {
 
     const totalPrice = Math.max(subtotal - totalDiscount, 0);
 
-    // Step 3: Create the Order
+    // Step 3: Generate unique tracking code
+    const generateTrackingCode = (length = 10) => {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let code = "";
+      for (let i = 0; i < length; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    };
+
+    let uniqueTrackingCode = generateTrackingCode();
+    let exists = await Order.findOne({ trackingCode: uniqueTrackingCode });
+    while (exists) {
+      uniqueTrackingCode = generateTrackingCode();
+      exists = await Order.findOne({ trackingCode: uniqueTrackingCode });
+    }
+
+    // Step 4: Create order with tracking code & initial shippingHistory
     const order = new Order({
       buyerId,
       addressId: selectedAddressId,
       totalPrice,
-      status: "pending", // Default status
+      status: "pending",
+      trackingCode: uniqueTrackingCode,
+      shippingHistory: [{ status: "created", date: new Date() }],
     });
+
     await order.save();
 
-    // Step 4: Create OrderItems and deduct from inventory
+    // Step 5: Create OrderItems and deduct from inventory
     for (const item of selectedItems) {
       const orderItem = new OrderItem({
         orderId: order._id,
@@ -223,7 +236,6 @@ const createOrder = async (req, res) => {
       });
       await orderItem.save();
 
-      // Deduct quantity from inventory - using upsert:false since we know inventory exists
       await Inventory.findOneAndUpdate(
         { productId: item.productId },
         {
@@ -237,9 +249,7 @@ const createOrder = async (req, res) => {
     // Check if we need to update the order status based on all items
     await syncOrderStatus(order._id);
 
-    // Step 5: Send email notification assuming payment is successful (e.g., for COD or post-order confirmation)
-    // Note: If payment is handled separately (e.g., via gateway webhook), move this to a payment success handler.
-    // For now, assuming order creation implies payment success for simplicity.
+    // Step 7: Send email notification
     try {
       const emailSubject = "Payment Successful and Order Confirmation";
       const emailText = `Dear Customer,\n\nYour payment was successful, and your order has been placed.\nOrder ID: ${order._id}\nTotal Amount: ${totalPrice}\n\nThank you for shopping with us!`;
@@ -254,6 +264,7 @@ const createOrder = async (req, res) => {
     return res.status(201).json({
       message: "Order placed successfully",
       orderId: order._id,
+      trackingCode: uniqueTrackingCode,
       totalPrice,
     });
   } catch (error) {

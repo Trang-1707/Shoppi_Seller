@@ -23,12 +23,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
 import Image from "../../designLayouts/Image";
+import { placeholderDataUrl } from "../../../utils/placeholder";
 import {
   resetUserInfo,
   setUserInfo,
   setProducts,
-  calculateCartTotalCount,
-} from "../../../redux/orebiSlice";
+} from "../../../redux/slices/orebi.slice";
 
 const HeaderBottom = () => {
   const navigate = useNavigate();
@@ -106,8 +106,9 @@ const HeaderBottom = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUserName(response.data.fullname || response.data.username);
-      dispatch(setUserInfo(response.data));
+      const profile = response.data?.data || {};
+      setUserName(profile.fullname || profile.username);
+      dispatch(setUserInfo(profile));
       setIsLoggedIn(true);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
@@ -201,7 +202,7 @@ const HeaderBottom = () => {
 
   const getProductImage = (item) => {
     if (!item.image) {
-      return "https://via.placeholder.com/100?text=No+Image";
+      return placeholderDataUrl(100, 100, "No Image");
     }
 
     if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
@@ -221,7 +222,7 @@ const HeaderBottom = () => {
               <div className="flex items-center">
                 <IoStorefrontOutline className="text-3xl text-white mr-2" />
                 <p className="text-[24px] font-bold text-white tracking-wider hover:text-gray-100 transition-colors">
-                  TUTHAITU
+                  SUPER GIRLS
                 </p>
               </div>
             </Link>
@@ -261,8 +262,11 @@ const HeaderBottom = () => {
                         alt={item.name}
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src =
-                            "https://via.placeholder.com/100?text=No+Image";
+                          e.target.src = placeholderDataUrl(
+                            100,
+                            100,
+                            "No Image"
+                          );
                         }}
                       />
                     </div>

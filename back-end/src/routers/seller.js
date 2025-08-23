@@ -2,6 +2,11 @@ const express = require("express");
 const router = express.Router();
 const sellerController = require("../controllers/sellerController");
 const { authMiddleware, isSeller } = require("../middleware/auth.middleware");
+const imageController = require("../controllers/imageController");
+const { upload } = require("../config/minio");
+const { productCreateLimiter } = require("../middleware/rateLimit.middleware");
+const { verifyRecaptcha } = require("../middleware/recaptcha.middleware");
+
 const voucherSellerController = require("../controllers/voucherSellerController");
 const imageController = require("../controllers/imageController");
 const { upload } = require("../config/cloudinary");
@@ -22,7 +27,12 @@ router.put("/store", sellerController.updateStoreProfile);
 router.put("/profile", sellerController.updateSellerProfile);
 
 // Quản lý sản phẩm
-router.post("/products", sellerController.createProduct);
+router.post(
+  "/products",
+  productCreateLimiter,
+  verifyRecaptcha,
+  sellerController.createProduct
+);
 router.get("/products", sellerController.getProducts);
 router.put("/products/:id", sellerController.updateProduct);
 router.delete("/products/:id", sellerController.deleteProduct);
@@ -72,6 +82,8 @@ router.get("/report", sellerController.getSalesReport);
 // Đánh giá và phản hồi
 router.get("/reviews", sellerController.getProductReviews);
 router.post("/feedback", sellerController.submitFeedback);
+
+router.post("/upload", upload.single("image"), imageController.uploadImage);
 
 // -------------------- VOUCHER (SELLER) --------------------
 

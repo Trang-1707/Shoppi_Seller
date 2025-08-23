@@ -1,48 +1,37 @@
-const { cloudinary } = require('../config/cloudinary');
+const { deleteObject } = require('../config/minio');
 
 /**
- * Upload a file to Cloudinary
- * @param {string} filePath - Path to the file
- * @param {Object} options - Upload options
- * @returns {Promise<Object>} - Cloudinary upload result
+ * Upload is handled by multer-s3 middleware. This module keeps deletion and URL helpers.
  */
-const uploadFile = async (filePath, options = {}) => {
-  try {
-    const result = await cloudinary.uploader.upload(filePath, options);
-    return result;
-  } catch (error) {
-    console.error('Error uploading file to Cloudinary:', error);
-    throw new Error('Failed to upload file');
-  }
-};
 
 /**
- * Delete a file from Cloudinary
- * @param {string} publicId - Public ID of the file to delete
- * @returns {Promise<Object>} - Cloudinary deletion result
+ * Delete a file from MinIO (S3)
+ * @param {string} key - Object key to delete
+ * @returns {Promise<Object>} - Deletion result
  */
-const deleteFile = async (publicId) => {
+const deleteFile = async (key) => {
   try {
-    const result = await cloudinary.uploader.destroy(publicId);
+    const result = await deleteObject(key);
     return result;
   } catch (error) {
-    console.error('Error deleting file from Cloudinary:', error);
+    console.error('Error deleting file from MinIO:', error);
     throw new Error('Failed to delete file');
   }
 };
 
 /**
- * Generate a signed URL for an image with optional transformations
- * @param {string} publicId - Public ID of the image
- * @param {Object} options - Transformation options
- * @returns {string} - Signed URL
+ * Get public URL for an object key
+ * @param {string} key
+ * @returns {string}
  */
-const getImageUrl = (publicId, options = {}) => {
-  return cloudinary.url(publicId, options);
+const getPublicUrl = (key) => {
+  const endpoint = process.env.MINIO_PUBLIC_ENDPOINT || process.env.MINIO_ENDPOINT || 'http://63.141.253.242:9000';
+  const bucket = process.env.MINIO_BUCKET || 'shopii';
+  const base = endpoint.replace(/\/$/, '');
+  return `${base}/${bucket}/${key}`;
 };
 
 module.exports = {
-  uploadFile,
   deleteFile,
-  getImageUrl
+  getPublicUrl,
 }; 

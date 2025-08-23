@@ -7,14 +7,15 @@ import { setCredentials } from '../features/auth/authSlice';
 import SellerService from '../services/api/SellerService';
 import UserService from '../services/api/UserService';
 import { BsShop } from 'react-icons/bs';
+import { api } from '../services';
 
 const StoreRegistration = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    
+
     // Get current user from Redux state
     const { user, token, isAuthenticated } = useSelector(state => state.auth);
-    
+
     // Redirect to login if not authenticated
     useEffect(() => {
         if (!isAuthenticated) {
@@ -22,17 +23,44 @@ const StoreRegistration = () => {
             navigate('/signin');
         }
     }, [isAuthenticated, navigate]);
-    
+
     const [formData, setFormData] = useState({
         storeName: '',
         description: '',
         bannerImageURL: '',
     });
-    
+    const [bannerPreview, setBannerPreview] = useState('');
+    const [uploadingBanner, setUploadingBanner] = useState(false);
+
     const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleBannerFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setBannerPreview(URL.createObjectURL(file));
+        setUploadingBanner(true);
+        try {
+            const fd = new FormData();
+            fd.append('image', file);
+            const res = await api.post('/images/upload', fd, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            if (res.data?.success) {
+                setFormData(prev => ({ ...prev, bannerImageURL: res.data.data.url }));
+                toast.success('Banner uploaded');
+            } else {
+                toast.error(res.data?.message || 'Upload failed');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('Upload failed');
+        } finally {
+            setUploadingBanner(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -42,14 +70,14 @@ const StoreRegistration = () => {
         try {
             // 1. Update user role to seller
             const response = await UserService.changeRole('seller');
-            
+
             // Update the Redux store with the updated user info
             if (response.success) {
                 dispatch(setCredentials({
                     user: { ...user, role: 'seller' },
                     token: response.token || token
                 }));
-                
+
                 // 2. Create store profile after role change
                 try {
                     await SellerService.createStore({
@@ -57,7 +85,7 @@ const StoreRegistration = () => {
                         description: formData.description,
                         bannerImageURL: formData.bannerImageURL,
                     });
-                    
+
                     toast.success('Store registered successfully! Your seller account is pending approval.');
                     navigate('/overview'); // Redirect to seller dashboard
                 } catch (storeError) {
@@ -73,7 +101,7 @@ const StoreRegistration = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
@@ -90,7 +118,7 @@ const StoreRegistration = () => {
                         Join our platform and start selling your products today!
                     </p>
                 </div>
-                
+
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-6">
                         {/* Store Name */}
@@ -109,7 +137,7 @@ const StoreRegistration = () => {
                                 onChange={handleChange}
                             />
                         </div>
-                        
+
                         {/* Description */}
                         <div>
                             <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-1">
@@ -125,21 +153,19 @@ const StoreRegistration = () => {
                                 onChange={handleChange}
                             />
                         </div>
-                        
-                        {/* Banner Image URL */}
+
+                        {/* Banner Image Upload */}
                         <div>
-                            <label htmlFor="bannerImageURL" className="block text-sm font-semibold text-gray-700 mb-1">
-                                Banner Image URL
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                Banner Image
                             </label>
-                            <input
-                                id="bannerImageURL"
-                                name="bannerImageURL"
-                                type="url"
-                                className="relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F52BA] focus:border-transparent sm:text-sm transition-all duration-300"
-                                placeholder="https://your-image-url.com/banner.jpg"
-                                value={formData.bannerImageURL}
-                                onChange={handleChange}
-                            />
+                            <div className="flex items-center gap-3">
+                                <input type="file" accept="image/*" onChange={handleBannerFile} />
+                                {uploadingBanner && <span className="text-sm text-gray-500">Uploading...</span>}
+                            </div>
+                            {bannerPreview || formData.bannerImageURL ? (
+                                <img alt="banner" src={bannerPreview || formData.bannerImageURL} className="mt-3 h-32 object-cover rounded" />
+                            ) : null}
                             <p className="mt-2 text-xs text-gray-500">
                                 This image will be the banner for your store page.
                             </p>

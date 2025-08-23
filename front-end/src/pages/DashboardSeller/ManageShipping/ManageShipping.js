@@ -15,6 +15,7 @@ import {
 import { Button } from "@mui/material";
 import axios from "axios";
 import { ReloadOutlined } from "@ant-design/icons";
+import { placeholderDataUrl } from '../../../utils/placeholder';
 
 const { Option } = Select;
 
@@ -193,7 +194,7 @@ const ManageShipping = () => {
               className="w-12 h-12 object-cover mr-2 rounded"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "https://via.placeholder.com/100";
+                e.target.src = placeholderDataUrl(100, 100, 'No Image');
               }}
             />
           )}

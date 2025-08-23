@@ -3,9 +3,10 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { MdClose } from "react-icons/md";
 import { HiMenuAlt2 } from "react-icons/hi";
 import { motion } from "framer-motion";
-import { logo, logoLight } from "../../../assets/images";
+import logo from "../../../assets/images/shopiiLogo.png";
+import logoLight from "../../../assets/images/shopiiLogo.png";
 import Image from "../../designLayouts/Image";
-import { navBarList } from "../../../constants";
+import { navBarList } from "../../../constants/nav";
 import Flex from "../../designLayouts/Flex";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
@@ -19,10 +20,10 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // Get user info from Redux store
   const { user, isAuthenticated } = useSelector(state => state.auth);
-  
+
   // Handle responsive menu
   useEffect(() => {
     let ResponsiveMenu = () => {
@@ -34,7 +35,7 @@ const Header = () => {
     };
     ResponsiveMenu();
     window.addEventListener("resize", ResponsiveMenu);
-    
+
     // Add scroll event listener
     const handleScroll = () => {
       if (window.scrollY > 20) {
@@ -44,7 +45,7 @@ const Header = () => {
       }
     };
     window.addEventListener('scroll', handleScroll);
-    
+
     // Cleanup event listeners
     return () => {
       window.removeEventListener("resize", ResponsiveMenu);
@@ -98,7 +99,7 @@ const Header = () => {
                   {navBarList.map(({ _id, title, link }) => (
                     <NavLink
                       key={_id}
-                      className={({ isActive }) => 
+                      className={({ isActive }) =>
                         `flex font-normal hover:font-bold w-20 h-6 justify-center items-center px-12 text-base ${isActive ? 'text-[#0F52BA] font-bold' : 'text-[#767676]'} hover:text-[#0F52BA] hover:underline underline-offset-[4px] decoration-[1px] md:border-r-[2px] border-r-gray-300 hoverEffect last:border-r-0 transition-colors`}
                       onClick={(e) => {
                         if (isAuthenticated && user.role === 'seller' && title === 'Shop') {
@@ -112,7 +113,7 @@ const Header = () => {
                       <li>{title}</li>
                     </NavLink>
                   ))}
-                  
+
                   {/* User info display */}
                   {isAuthenticated ? (
                     <div className="flex items-center ml-4 space-x-4">
@@ -121,14 +122,14 @@ const Header = () => {
                       </span>
                       {/* Show "Become a Seller" button only for buyers */}
                       {user.role === 'buyer' && (
-                        <button 
+                        <button
                           onClick={handleBecomeASeller}
                           className="border border-[#0F52BA] text-[#0F52BA] px-4 py-1 rounded hover:bg-[#0F52BA] hover:text-white transition-colors duration-300"
                         >
                           Become a Seller
                         </button>
                       )}
-                      <button 
+                      <button
                         onClick={handleLogout}
                         className="bg-[#0F52BA] text-white px-4 py-1 rounded hover:bg-[#0A3C8A] transition-colors duration-300 shadow-md hover:shadow-lg"
                       >
@@ -193,7 +194,7 @@ const Header = () => {
                           </NavLink>
                         </li>
                       ))}
-                      
+
                       {/* User section in mobile menu */}
                       {isAuthenticated ? (
                         <>
@@ -203,7 +204,7 @@ const Header = () => {
                           {/* Show "Become a Seller" option only for buyers */}
                           {user.role === 'buyer' && (
                             <li className="font-normal hover:font-bold items-center text-lg text-gray-200 hover:underline underline-offset-[4px] decoration-[1px] hover:text-white">
-                              <button 
+                              <button
                                 onClick={handleBecomeASeller}
                                 className="w-full text-left"
                               >
@@ -212,7 +213,7 @@ const Header = () => {
                             </li>
                           )}
                           <li className="font-normal hover:font-bold items-center text-lg text-gray-200 hover:underline underline-offset-[4px] decoration-[1px] hover:text-white">
-                            <button 
+                            <button
                               onClick={handleLogout}
                               className="w-full text-left"
                             >
