@@ -360,7 +360,7 @@ const Checkout = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <DiscountIcon sx={{ mr: 1, color: '#0F52BA' }} />
                 <Typography variant="h5" fontWeight={600}>
-                  Admin Discount Code
+                  Wed Discount Code
                 </Typography>
               </Box>
               
@@ -758,5 +758,6 @@ const Checkout = () => {
     </Container>
   );
 };
+
 
 export default Checkout;
