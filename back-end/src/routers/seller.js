@@ -27,7 +27,7 @@ router.put("/profile", sellerController.updateSellerProfile);
 router.post(
   "/products",
   productCreateLimiter,
-  verifyRecaptcha,
+  // verifyRecaptcha,
   sellerController.createProduct
 );
 router.get("/products", sellerController.getProducts);
