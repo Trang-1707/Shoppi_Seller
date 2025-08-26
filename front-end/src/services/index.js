@@ -59,9 +59,15 @@ api.interceptors.response.use(
                 window.location.href = '/signin';
             }
         } else if (error.response && error.response.status === 403) {
-            // Redirect to a custom error page with an error message
-            const errorMessage = error.response.data.message || "You do not have permission to access this resource.";
-            window.location.href = `/error?status=403&message=${encodeURIComponent(errorMessage)}`;
+            // Nếu là API thêm sản phẩm thì trả lỗi về cho component để hiển thị snackbar
+            if (error.config && error.config.url && error.config.url.includes('seller/products')) {
+                // Không redirect, trả lỗi về cho component xử lý
+                return Promise.reject(error);
+            } else {
+                // Redirect các trường hợp khác
+                const errorMessage = error.response.data.message || "You do not have permission to access this resource.";
+                window.location.href = `/error?status=403&message=${encodeURIComponent(errorMessage)}`;
+            }
         }
 
         return Promise.reject(error);

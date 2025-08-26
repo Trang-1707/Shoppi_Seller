@@ -10,8 +10,6 @@ import {
   DialogTitle,
   DialogContentText,
   MenuItem,
-  Snackbar,
-  Alert,
   Fab,
   Tooltip,
   Zoom,
@@ -87,7 +85,7 @@ export default function AddProduct({ onAdded }) {
   const [isAuction, setIsAuction] = React.useState("false");
   const [quantity, setQuantity] = React.useState(0);
   const [image, setImage] = React.useState("");
-  const [snackbar, setSnackbar] = React.useState({
+  const [popup, setPopup] = React.useState({
     open: false,
     msg: "",
     severity: "success",
@@ -134,7 +132,7 @@ export default function AddProduct({ onAdded }) {
       const result = await api.post("seller/products", requestBody);
 
       if (result.data?.success) {
-        setSnackbar({
+        setPopup({
           open: true,
           msg: "Product added successfully!",
           severity: "success",
@@ -149,18 +147,29 @@ export default function AddProduct({ onAdded }) {
         setImage("");
         onAdded();
       } else {
-        setSnackbar({
+        let msg = result.data.message;
+        if (msg && msg.includes('tối đa 10 sản phẩm')) {
+          msg = 'Bạn là seller mới, chỉ được đăng tối đa 10 sản phẩm trong 1 tháng đầu tiên!';
+        }
+        setPopup({
           open: true,
-          msg: result.data.message,
+          msg,
           severity: "error",
         });
+        setOpenAddProductDialog(false);
       }
     } catch (error) {
-      setSnackbar({
+      // Nếu có message từ API (ví dụ lỗi 403 vượt quá 10 sản phẩm)
+      let apiMsg = error?.response?.data?.message;
+      if (apiMsg && apiMsg.includes('tối đa 10 sản phẩm')) {
+        apiMsg = 'Bạn là seller mới, chỉ được đăng tối đa 10 sản phẩm trong 1 tháng đầu tiên!';
+      }
+      setPopup({
         open: true,
-        msg: "Error occurred while adding the product.",
+        msg: apiMsg || "Error occurred while adding the product.",
         severity: "error",
       });
+      setOpenAddProductDialog(false);
     }
   };
 
@@ -194,11 +203,11 @@ export default function AddProduct({ onAdded }) {
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
-      setSnackbar({
-        open: true,
-        msg: "Category name is required",
-        severity: "error",
-      });
+        setPopup({
+          open: true,
+          msg: "Category name is required",
+          severity: "error",
+        });
       return;
     }
 
@@ -209,7 +218,7 @@ export default function AddProduct({ onAdded }) {
       });
 
       if (result.data?.success) {
-        setSnackbar({
+        setPopup({
           open: true,
           msg: "Category added successfully!",
           severity: "success",
@@ -219,14 +228,14 @@ export default function AddProduct({ onAdded }) {
         setNewCategoryDescription("");
         setCategories((prev) => [...prev, result.data.data]);
       } else {
-        setSnackbar({
+        setPopup({
           open: true,
           msg: result.data.message,
           severity: "error",
         });
       }
     } catch (error) {
-      setSnackbar({
+      setPopup({
         open: true,
         msg: "Error occurred while adding the category.",
         severity: "error",
@@ -597,14 +606,26 @@ export default function AddProduct({ onAdded }) {
         )}
       </AnimatePresence>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={2500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      <Dialog
+        open={popup.open}
+        onClose={() => setPopup((p) => ({ ...p, open: false }))}
+        maxWidth="xs"
+        fullWidth
       >
-        <Alert severity={snackbar.severity}>{snackbar.msg}</Alert>
-      </Snackbar>
+        <DialogTitle sx={{ fontWeight: 700, color: popup.severity === 'error' ? 'error.main' : 'success.main' }}>
+          {popup.severity === 'error' ? 'Thông báo' : 'Thành công'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" color={popup.severity === 'error' ? 'error.main' : 'success.main'}>
+            {popup.msg}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPopup((p) => ({ ...p, open: false }))} color={popup.severity === 'error' ? 'error' : 'primary'}>
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
