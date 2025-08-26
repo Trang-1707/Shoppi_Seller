@@ -7,7 +7,30 @@ const { getPublicUrl } = require('../services/fileUploadService');
 
 const normalizeImage = (image) => {
   if (!image) return image;
-  if (/^https?:\/\//i.test(image)) return image;
+  const publicBase = (process.env.MINIO_PUBLIC_ENDPOINT || '').replace(/\/$/, '');
+  const endpointBase = (process.env.MINIO_ENDPOINT || '').replace(/\/$/, '');
+
+  // If already absolute http(s)
+  if (/^https?:\/\//i.test(image)) {
+    try {
+      const u = new URL(image);
+      // If http and we have a public https base, rewrite keeping path
+      if (publicBase && u.protocol === 'http:') {
+        return `${publicBase}${u.pathname}`;
+      }
+      // If pointing to MINIO endpoint host, rewrite to public base
+      if (publicBase && endpointBase) {
+        const endpointHost = new URL(endpointBase).host;
+        if (u.host === endpointHost) {
+          return `${publicBase}${u.pathname}`;
+        }
+      }
+      return image;
+    } catch {
+      return image;
+    }
+  }
+  // Relative key -> build public URL
   return getPublicUrl(image);
 };
 
