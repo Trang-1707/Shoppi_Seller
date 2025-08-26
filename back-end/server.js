@@ -10,29 +10,51 @@ const { initSocketServer } = require("./src/services/socketService");
 const app = express();
 dotenv.config(); // Move dotenv.config() before using process.env
 
-// Build allowed origins from env
+// Build allowed origins from env (tolerant to http/https and trailing slashes)
+const normalizeOrigin = (value) => {
+  try {
+    const v = String(value || '').trim();
+    if (!v) return [];
+    const ensureProtocol = (s) => (/^https?:\/\//i.test(s) ? s : `https://${s}`);
+    const url = new URL(ensureProtocol(v));
+    const originHttps = `${url.protocol}//${url.host}`.replace(/\/$/, '');
+    const originHttp = `http://${url.host}`;
+    return Array.from(new Set([originHttps, originHttp]));
+  } catch {
+    return [];
+  }
+};
+
 const parseOrigins = () => {
   const list = [];
-  if (process.env.CLIENT_URL) list.push(process.env.CLIENT_URL);
-  if (process.env.CLIENT_URLS) list.push(...process.env.CLIENT_URLS.split(",").map(s => s.trim()).filter(Boolean));
+  if (process.env.CLIENT_URL) list.push(...normalizeOrigin(process.env.CLIENT_URL));
+  if (process.env.CLIENT_URLS) {
+    process.env.CLIENT_URLS.split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .forEach(item => list.push(...normalizeOrigin(item)));
+  }
   // Common local fallbacks
   list.push('http://localhost:3000');
   list.push('https://localhost:3000');
   return Array.from(new Set(list));
 };
+
 const allowedOrigins = parseOrigins();
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // allow non-browser tools
-    if (allowedOrigins.includes(origin)) return cb(null, true);
+    if (allowedOrigins.includes(origin.replace(/\/$/, ''))) return cb(null, true);
     return cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.options('*', cors());
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Add request logging middleware
