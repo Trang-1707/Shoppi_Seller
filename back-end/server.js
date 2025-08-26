@@ -10,33 +10,45 @@ const { initSocketServer } = require("./src/services/socketService");
 const app = express();
 dotenv.config(); // Move dotenv.config() before using process.env
 
+// Build allowed origins from env
+const parseOrigins = () => {
+  const list = [];
+  if (process.env.CLIENT_URL) list.push(process.env.CLIENT_URL);
+  if (process.env.CLIENT_URLS) list.push(...process.env.CLIENT_URLS.split(",").map(s => s.trim()).filter(Boolean));
+  // Common local fallbacks
+  list.push('http://localhost:3000');
+  list.push('https://localhost:3000');
+  return Array.from(new Set(list));
+};
+const allowedOrigins = parseOrigins();
+
 app.use(cors({
-  origin: [process.env.CLIENT_URL || 'http://localhost:3000'],
-  credentials: true
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // allow non-browser tools
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.options('*', cors());
 app.use(express.json());
 
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  
-  // Log request body for POST/PUT requests
+
   if (req.method === 'POST' || req.method === 'PUT') {
     console.log('Request body:', JSON.stringify(req.body));
   }
-  
-  // Capture the original send
+
   const originalSend = res.send;
-  
-  // Override send to log response
-  res.send = function(body) {
+  res.send = function (body) {
     console.log(`[${new Date().toISOString()}] Response ${res.statusCode} for ${req.url}`);
-    
-    // Restore original send and call it
     res.send = originalSend;
     return res.send(body);
   };
-  
   next();
 });
 
@@ -58,30 +70,19 @@ app.use("/api", router);
 app.get('/', (req, res) => {
   const { paymentStatus } = req.query;
   const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  
+
   if (paymentStatus) {
-    // Redirect to frontend with payment status
     return res.redirect(`${frontendUrl}?paymentStatus=${paymentStatus}`);
   }
-  
-  // Default redirect to frontend
   res.redirect(frontendUrl);
 });
 
-// Create HTTP server
 const server = http.createServer(app);
-
-// Initialize Socket.IO
 const io = initSocketServer(server);
-
-// Store io instance on app for potential use in request handlers
 app.set('io', io);
 
-// Listen on server (not app)
 server.listen(PORT, () => {
   console.log(`Server is running at PORT ${PORT}`);
   console.log(`WebSocket server is running`);
-  
-  // Initialize schedulers after server starts
   initScheduler();
 });

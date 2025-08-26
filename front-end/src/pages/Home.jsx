@@ -38,6 +38,7 @@ import SortIcon from '@mui/icons-material/Sort';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { motion } from 'framer-motion';
+import { fetchCart } from '../features/cart/cartSlice';
 import { placeholderDataUrl } from '../utils/placeholder';
 
 const Home = () => {
@@ -196,6 +197,8 @@ const Home = () => {
       );
 
       toast.success('Product added to cart!');
+      // Refresh cart from server so UI (header/cart page) updates immediately
+      dispatch(fetchCart());
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error(error.response?.data?.message || 'Failed to add to cart');

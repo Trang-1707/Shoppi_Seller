@@ -30,7 +30,7 @@ import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { styled } from "@mui/material/styles";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../../../services/index";
-// import ReCAPTCHA from 'react-google-recaptcha';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 // Styled Components
 const VisuallyHiddenInput = styled("input")({
@@ -95,8 +95,8 @@ export default function AddProduct({ onAdded }) {
   const [newCategoryName, setNewCategoryName] = React.useState("");
   const [newCategoryDescription, setNewCategoryDescription] =
     React.useState("");
-  // const [recaptchaOk, setRecaptchaOk] = React.useState(false);
-  // const [recaptchaToken, setRecaptchaToken] = React.useState('');
+  const [recaptchaOk, setRecaptchaOk] = React.useState(false);
+  const [recaptchaToken, setRecaptchaToken] = React.useState('');
 
   React.useEffect(() => {
     api
@@ -111,10 +111,10 @@ export default function AddProduct({ onAdded }) {
   const handleAddProduct = async (e) => {
     e.preventDefault();
 
-    // if (!recaptchaOk || !recaptchaToken) {
-    //     setSnackbar({ open: true, msg: 'Please complete captcha', severity: 'error' });
-    //     return;
-    // }
+    if (!recaptchaOk || !recaptchaToken) {
+      setPopup({ open: true, msg: 'Please complete captcha', severity: 'error' });
+      return;
+    }
 
     const requestBody = {
       title,
@@ -124,7 +124,7 @@ export default function AddProduct({ onAdded }) {
       categoryId,
       isAuction: isAuction === "true",
       quantity: Number(quantity),
-      // recaptchaToken,
+      recaptchaToken,
     };
     console.log("image", image);
 
@@ -203,11 +203,11 @@ export default function AddProduct({ onAdded }) {
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
-        setPopup({
-          open: true,
-          msg: "Category name is required",
-          severity: "error",
-        });
+      setPopup({
+        open: true,
+        msg: "Category name is required",
+        severity: "error",
+      });
       return;
     }
 
@@ -495,13 +495,13 @@ export default function AddProduct({ onAdded }) {
                       </Grid>
                     </DialogCard>
                   </Stack>
-                  {/* <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <ReCAPTCHA
-                                            sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''}
-                                            onChange={(token) => { setRecaptchaOk(!!token); setRecaptchaToken(token || ''); }}
-                                            onExpired={() => { setRecaptchaOk(false); setRecaptchaToken(''); }}
-                                        />
-                                    </Box> */}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <ReCAPTCHA
+                      sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''}
+                      onChange={(token) => { setRecaptchaOk(!!token); setRecaptchaToken(token || ''); }}
+                      onExpired={() => { setRecaptchaOk(false); setRecaptchaToken(''); }}
+                    />
+                  </Box>
                   <DialogActions
                     sx={{ p: 2, borderTop: "1px solid #e0e0e0", mt: 3 }}
                   >
@@ -515,6 +515,7 @@ export default function AddProduct({ onAdded }) {
                       type="submit"
                       variant="contained"
                       color="primary"
+                      disabled={!recaptchaOk}
                       sx={{ textTransform: "none" }}
                     >
                       Add Product
