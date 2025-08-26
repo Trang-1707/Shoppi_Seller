@@ -17,22 +17,24 @@ export const fetchCart = createAsyncThunk(
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const cartItems = response.data.items;
+      const cartItems = response.data.items || [];
 
       // Fetch inventory data for each product in the cart
       const itemsWithInventory = await Promise.all(
         cartItems.map(async (item) => {
           try {
-            const inventoryResponse = await axios.get(`${API_URL}/products/${item.productId._id}/detail`, {
+            const pid = item?.productId?._id;
+            if (!pid) {
+              if (item?.productId) item.productId.inventoryQuantity = 0;
+              return item;
+            }
+            const inventoryResponse = await axios.get(`${API_URL}/products/${pid}/detail`, {
               headers: { Authorization: `Bearer ${token}` },
             });
-
-            // Add inventory quantity to productId object
             item.productId.inventoryQuantity = inventoryResponse.data.data.inventory?.quantity || 0;
             return item;
           } catch (error) {
-            console.error(`Failed to fetch inventory for product ${item.productId._id}:`, error);
-            item.productId.inventoryQuantity = 0;
+            try { if (item?.productId) item.productId.inventoryQuantity = 0; } catch { }
             return item;
           }
         })
