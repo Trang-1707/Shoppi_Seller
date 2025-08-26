@@ -14,11 +14,14 @@ const uploadImage = async (req, res) => {
       });
     }
 
-    // multer-s3 gắn metadata của ảnh vào req.file
+    // Luôn build URL public từ MINIO_PUBLIC_ENDPOINT để tránh mixed content
+    const key = req.file.key;
+    const publicUrl = fileUploadService.getPublicUrl(key);
+
     const result = {
-      public_id: req.file.key,
-      url: req.file.location || req.file.Location || req.file.path,
-      secure_url: req.file.location || req.file.Location || req.file.path,
+      public_id: key,
+      url: publicUrl,
+      secure_url: publicUrl,
       format: req.file.mimetype,
       width: undefined,
       height: undefined
@@ -56,14 +59,18 @@ const uploadMultipleImages = async (req, res) => {
       });
     }
 
-    const results = req.files.map(file => ({
-      public_id: file.key,
-      url: file.location || file.Location || file.path,
-      secure_url: file.location || file.Location || file.path,
-      format: file.mimetype,
-      width: undefined,
-      height: undefined
-    }));
+    const results = req.files.map(file => {
+      const key = file.key;
+      const publicUrl = fileUploadService.getPublicUrl(key);
+      return {
+        public_id: key,
+        url: publicUrl,
+        secure_url: publicUrl,
+        format: file.mimetype,
+        width: undefined,
+        height: undefined
+      };
+    });
 
     return res.status(200).json({
       success: true,

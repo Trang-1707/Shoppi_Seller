@@ -79,6 +79,8 @@ export default function UpdateProduct({
     severity: "success",
   });
 
+  const [uploadingImage, setUploadingImage] = React.useState(false);
+
   React.useEffect(() => {
     api
       .get("seller/categories")
@@ -103,10 +105,27 @@ export default function UpdateProduct({
     setQuantity(targetProduct?.quantity || 0);
   }, [targetProduct, open]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(URL.createObjectURL(file));
+  const handleImageChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await api.post("/images/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (res.data?.success) {
+        setImage(res.data.data.url); // MinIO public URL
+        setSnackbar({ open: true, msg: "Image uploaded", severity: "success" });
+      } else {
+        setSnackbar({ open: true, msg: res.data?.message || "Upload failed", severity: "error" });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, msg: "Upload failed", severity: "error" });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -247,14 +266,20 @@ export default function UpdateProduct({
                     onChange={(e) => setImage(e.target.value)}
                   />
                 </Grid>
+                {image ? (
+                  <Grid item xs={12}>
+                    <img src={image} alt="preview" style={{ height: 120, objectFit: "contain", borderRadius: 8 }} />
+                  </Grid>
+                ) : null}
                 <Grid item xs={12}>
                   <Button
                     component="label"
                     startIcon={<CloudUploadIcon />}
                     variant="outlined"
                     fullWidth
+                    disabled={uploadingImage}
                   >
-                    Upload Image
+                    {uploadingImage ? 'Uploading...' : 'Upload Image'}
                     <VisuallyHiddenInput
                       type="file"
                       accept="image/png, image/jpeg"
@@ -329,6 +354,7 @@ export default function UpdateProduct({
             variant="contained"
             startIcon={<SaveIcon />}
             onClick={handleUpdateProduct}
+            disabled={uploadingImage}
           >
             Save Changes
           </Button>
