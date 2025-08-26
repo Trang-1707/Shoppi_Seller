@@ -2,10 +2,8 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { toast } from "react-toastify";
 import CartService from "../../services/api/CartService";
 
-const userId = null
-
 export const fetchCart = createAsyncThunk('cart/fetchCart', async () => {
-  const res = await CartService.getAllProducts(userId)
+  const res = await CartService.getAllProducts()
   return res.items
 })
 

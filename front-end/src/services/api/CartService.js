@@ -1,22 +1,19 @@
 import { api } from '../index';
 
 class CartService {
-  async getAllProducts(userId) {
+  async getAllProducts() {
     try {
-      const { data } = await api.get(`/cart/${userId}`);
+      const { data } = await api.get(`/buyers/cart`);
       if (data) return data;
     } catch (error) {
       throw new Error(error.response ? error.response.data.message : error.message);
     }
   }
 
-  async updateCartItem(userId, productId, quantity, color) {
+  async updateCartItem(productId, quantity) {
     try {
-      const { data } = await api.put('/cart/update', {
-        userId,
-        productId,
+      const { data } = await api.put(`/buyers/cart/update/${productId}`, {
         quantity,
-        color
       });
       return data;
     } catch (error) {
@@ -24,13 +21,11 @@ class CartService {
     }
   }
 
-  async addToCartItem(userId, productId, quantity, color) {
+  async addToCartItem(productId, quantity) {
     try {
-      const { data } = await api.post('/cart/add-to-cart', {
-        userId,
+      const { data } = await api.post(`/buyers/cart/add`, {
         productId,
         quantity,
-        color
       });
       return data;
     } catch (error) {
@@ -38,15 +33,9 @@ class CartService {
     }
   }
 
-  async deleteCartItem(userId, productId, color) {
+  async deleteCartItem(productId) {
     try {
-      const { data } = await api.delete('/cart/remove', {
-        data: {
-          userId,
-          productId,
-          color
-        }
-      });
+      const { data } = await api.delete(`/buyers/cart/remove/${productId}`);
       return data;
     } catch (error) {
       throw new Error(error.response ? error.response.data.message : error.message);
