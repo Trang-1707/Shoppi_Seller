@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         WORKDIR = '/root/site/Shoppi_Seller'
-        COMPOSE_PROJECT_NAME = 'shoppi'
+        COMPOSE_PROJECT_NAME = 'shoppi_seller'
         DOCKER_BUILDKIT = '1'
         COMPOSE_DOCKER_CLI_BUILD = '1'
         // Optional frontend build args (override with Jenkins creds/params or .env)
@@ -47,8 +47,7 @@ pipeline {
                 dir("${WORKDIR}") {
                     sh '''
                       set -e
-                      docker compose down --remove-orphans || true
-                      docker compose build --pull
+                      docker compose -p "${COMPOSE_PROJECT_NAME}" build --no-cache backend frontend
                     '''
                 }
             }
@@ -59,9 +58,9 @@ pipeline {
                 dir("${WORKDIR}") {
                     sh '''
                       set -e
-                      # If you need to pass build args via env, ensure they exist in .env at ${WORKDIR}
-                      docker compose up -d
-                      docker compose ps
+                      # Minimal downtime update: recreate only targeted services without full stack teardown
+                      docker compose -p "${COMPOSE_PROJECT_NAME}" up -d --no-deps --force-recreate backend frontend
+                      docker compose -p "${COMPOSE_PROJECT_NAME}" ps
                     '''
                 }
             }
