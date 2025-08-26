@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { BACKEND_API_URI } from '../utils/constants';
 
-axios.defaults.withCredentials = true;
+axios.defaults.withCredentials = false;
 
 const api = axios.create({
     baseURL: BACKEND_API_URI
@@ -12,12 +12,12 @@ api.interceptors.request.use(
     config => {
         // Try to get token from localStorage first (this is most common)
         let token = localStorage.getItem('token');
-        
+
         // If not found, try to get from accessToken key (alternative storage key)
         if (!token) {
             token = localStorage.getItem('accessToken');
         }
-        
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         } else {
@@ -33,43 +33,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     response => response,
     async error => {
-        const originalRequest = error.config;
-
-        // Only attempt token refresh if we have a 401 error and haven't tried refreshing yet
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            try {
-                const { data } = await axios.post(`${BACKEND_API_URI}/user/refresh-token`);
-                
-                // Store the new token
-                localStorage.setItem('token', data.accessToken);
-                localStorage.setItem('accessToken', data.accessToken);
-                
-                // Update the original request with the new token
-                originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
-                
-                // Retry the original request
-                return api(originalRequest);
-            } catch (err) {
-                console.error('Failed to refresh token:', err);
-                // Redirect to login or dispatch logout action
-                localStorage.removeItem('token');
-                localStorage.removeItem('accessToken');
-                window.location.href = '/signin';
-            }
-        } else if (error.response && error.response.status === 403) {
-            // Nếu là API thêm sản phẩm thì trả lỗi về cho component để hiển thị snackbar
-            if (error.config && error.config.url && error.config.url.includes('seller/products')) {
-                // Không redirect, trả lỗi về cho component xử lý
-                return Promise.reject(error);
-            } else {
-                // Redirect các trường hợp khác
-                const errorMessage = error.response.data.message || "You do not have permission to access this resource.";
-                window.location.href = `/error?status=403&message=${encodeURIComponent(errorMessage)}`;
-            }
-        }
-
+        // Do not attempt token refresh (no refresh endpoint). Let caller handle 401/403.
         return Promise.reject(error);
     }
 );
