@@ -1,9 +1,10 @@
 import axios from "axios";
+import { BACKEND_API_URI } from "../../../utils/constants";
 
 class VoucherService {
   constructor() {
-    this.baseURL = "http://localhost:9999/api/seller/vouchers";
-    this.token = localStorage.getItem("accessToken") || "";
+    this.baseURL = `${BACKEND_API_URI}/seller/vouchers`;
+    this.token = localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
   }
 
   // Lấy tất cả voucher
