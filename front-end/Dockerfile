@@ -15,8 +15,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine AS runtime
-# Use default Nginx config; host-level Nginx Proxy Manager will handle routing
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"] 
+FROM node:20-alpine AS runtime
+WORKDIR /app
+RUN npm i -g serve
+COPY --from=build /app/build ./build
+EXPOSE 3000
+CMD ["serve", "-s", "build", "-l", "3000"]

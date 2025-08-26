@@ -11,6 +11,8 @@ services:
       PORT: "9999"
     expose:
       - "9999"
+    ports:
+      - "0.0.0.0:9999:9999"
     networks:
       - shopii
 
@@ -24,7 +26,7 @@ services:
     image: shopii-frontend:latest
     container_name: shopii-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
     networks:
