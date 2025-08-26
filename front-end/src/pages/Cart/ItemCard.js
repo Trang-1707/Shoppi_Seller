@@ -20,6 +20,7 @@ const ItemCard = ({
 }) => {
   if (!item) return null;
 
+  
   const handleDecrease = () => {
     if (item.quantity > 1) {
       onUpdateQuantity(item._id, item.quantity - 1);
